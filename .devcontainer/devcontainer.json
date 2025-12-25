@@ -1,0 +1,15 @@
+{
+  "name": "Containerized Vein Server - devcontainer",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.vscode-pull-request-github",
+        "github.copilot",
+        "streetsidesoftware.code-spell-checker",
+        "Anthropic.claude-code",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+}
