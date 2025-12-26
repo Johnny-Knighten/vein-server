@@ -32,6 +32,7 @@ LABEL version="1.0.0"
 # bash: Script execution environment
 # vim: Debug/troubleshooting (minimal editor)
 # net-tools: Network diagnostics (netstat, ifconfig)
+# python3: Configuration generation (ENV → INI conversion)
 # ============================================================================
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -46,7 +47,8 @@ RUN apt-get update && \
         tar \
         bash \
         vim \
-        net-tools && \
+        net-tools \
+        python3 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -86,12 +88,14 @@ RUN mkdir -p \
 # -----------------------------------------------------------------------------
 COPY bin/ /vein-server/bin/
 COPY supervisord/ /vein-server/supervisord/
+COPY config_from_env_vars/ /usr/local/bin/config_from_env_vars/
 
 # -----------------------------------------------------------------------------
-# Set Ownership
+# Set Ownership and Permissions
 # -----------------------------------------------------------------------------
 RUN chown -R steam:steam /vein-server && \
-    chmod +x /vein-server/bin/*.sh
+    chmod +x /vein-server/bin/*.sh && \
+    chmod +x /usr/local/bin/config_from_env_vars/main.py
 
 # -----------------------------------------------------------------------------
 # Set Working Directory
