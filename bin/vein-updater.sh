@@ -1,44 +1,40 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# Vein Updater - Downloads/updates server via SteamCMD
+set -e
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Starting Vein server update..."
+[[ -z "${DEBUG}" ]] || [[ "${DEBUG,,}" = "false" ]] || [[ "${DEBUG,,}" = "0" ]] || set -x
 
-# Run SteamCMD to download/update Vein server (App ID: 2131400)
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Running SteamCMD..."
-if ! steamcmd +force_install_dir /vein-server/server \
-              +login anonymous \
-              +app_update 2131400 validate \
-              +quit; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] SteamCMD update failed"
-    exit 1
-fi
+echo "Updater - Starting"
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] SteamCMD update complete"
+main() {
+    download_and_update_vein_server
+    launch_vein_server
+}
 
-# File validation (if enabled)
-VEIN_VALIDATE_FILES="${VEIN_VALIDATE_FILES:-true}"
-if [[ "${VEIN_VALIDATE_FILES}" == "true" ]]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Validating server files..."
+launch_vein_server() {
+    echo "Updater - Launching Vein Server"
+    if [[ "$DRY_RUN" = "True" ]]; then
+        echo "DRY_RUN - supervisorctl start vein-server"
+    else
+        supervisorctl start vein-server
+    fi
+}
 
-    # Check if VeinServer.sh exists and is executable
-    if [[ ! -f "/vein-server/server/VeinServer.sh" ]]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] VeinServer.sh not found after update"
-        exit 1
+download_and_update_vein_server() {
+    if [ "$SKIP_FILE_VALIDATION" = "True" ]; then
+        echo "Updater - Skipping SteamCMD Validation of Server Files"
+        local app_update="+app_update 2131400"
+    else
+        local app_update="+app_update 2131400 validate"
     fi
 
-    if [[ ! -x "/vein-server/server/VeinServer.sh" ]]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] VeinServer.sh not executable, setting permissions..."
-        chmod +x /vein-server/server/VeinServer.sh
+    local install_dir="+force_install_dir $SERVER_DIR"
+
+    if [[ "$DRY_RUN" = "True" ]]; then
+        echo "DRY_RUN - steamcmd +login anonymous \"$install_dir\" \"$app_update\" +quit"
+    else
+        steamcmd +login anonymous "$install_dir" "$app_update" +quit
     fi
+}
 
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] File validation passed"
-else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] File validation disabled (VEIN_VALIDATE_FILES=false)"
-fi
-
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Update complete, starting server..."
-
-# Start vein-server process via supervisorctl
-supervisorctl -c /vein-server/supervisord/supervisord.conf start vein-server
+main
