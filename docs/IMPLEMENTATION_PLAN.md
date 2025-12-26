@@ -236,83 +236,96 @@ Container Start → Bootstrap → Updater (if needed) → Server Running
 
 ---
 
-### Phase 3: Configuration Management
-**Goal:** Generate Game.ini and Engine.ini from environment variables
+### Phase 3: Configuration Management (Python-Based - ark-sa-server Method)
+**Goal:** Generate Game.ini and Engine.ini from environment variables using Python
 
-**PR 3.1: Configuration Templates**
-- Branch: `feat/config-templates`
-- Files:
-  - `templates/Game.ini.template` - Game config with placeholders
-  - `templates/Engine.ini.template` - Engine config with placeholders
-- Templates:
-  - Use `{{VARIABLE_NAME}}` placeholder syntax
-  - Organized by INI sections
-  - Comments for major settings
-- Testing:
-  - ✓ Templates are valid INI structure
-  - ✓ All placeholders documented
-- Commit: `feat: add Game.ini and Engine.ini templates`
+**NOTE:** This phase uses ark-sa-server's Python-based `config_from_env_vars` approach instead of bash templates. This is simpler, proven, and matches the reference architecture exactly.
 
-**PR 3.2: Configuration Presets**
-- Branch: `feat/config-presets`
+**PR 3.1: Add Python Config Script**
+- Branch: `feat/python-config-script`
 - Files:
-  - `templates/presets/default.env` - Default values
-  - `templates/presets/pve-friendly.env` - PvE-focused preset
-  - `templates/presets/pvp-hardcore.env` - PvP-focused preset
-- Presets:
-  - Core server settings (10-15 vars)
-  - Key gameplay settings (15-20 vars)
-  - All with sensible defaults
-- Testing:
-  - ✓ All presets source without errors
-  - ✓ No duplicate variables
-- Commit: `feat: add configuration presets (default, PvE, PvP)`
-
-**PR 3.3: Config Generator Script (Core)**
-- Branch: `feat/config-generator-core`
-- Files:
-  - `scripts/vein-config-generator.sh` - Core generator logic
+  - `config_from_env_vars/__init__.py` - Empty Python package marker
+  - `config_from_env_vars/main.py` - Python script from ark-sa-server
 - Features:
-  - Load preset based on `VEIN_PRESET` ENV var
-  - Parse `VEIN_*` ENV vars
-  - Basic template replacement
-  - Generate to correct paths
+  - Copy ark-sa-server's `config_from_env_vars/main.py` with minimal adaptations
+  - Parse `CONFIG_<filename>_<section>_<variable>` environment variables
+  - Direct ENV → INI conversion (no templates needed)
+  - Automatic backup creation and comparison
+  - Special character handling: `SLASH` → `/`, `DOT` → `.`
+  - Default path: `/vein-server/server/Vein/Saved/Config/LinuxServer`
 - Testing:
-  - ✓ Shellcheck passes
-  - ✓ Generates valid INI files
-  - ✓ Preset loading works
-- Commit: `feat: add config generator script with preset support`
+  - ✓ Python script runs without errors
+  - ✓ Correct path handling for Vein
+- Commit: `feat: add Python config_from_env_vars script from ark-sa-server`
 
-**PR 3.4: Config Validation & Advanced Features**
-- Branch: `feat/config-validation`
+**PR 3.2: Install Python Script in Dockerfile**
+- Branch: `feat/install-python-config`
 - Files:
-  - Update `scripts/vein-config-generator.sh`
-  - Update `scripts/common-functions.sh` - Add validation helpers
-- Features:
-  - Validate numeric ranges
-  - Validate boolean values
-  - Warning for invalid values (use defaults)
-  - Support 251+ variables (documented in comments)
+  - Update `Dockerfile` - Copy and install Python script
+- Changes:
+  - `COPY config_from_env_vars/ /usr/local/bin/config_from_env_vars`
+  - `RUN chmod +x /usr/local/bin/config_from_env_vars/main.py`
+  - Python3 already installed in base image (steamcmd/steamcmd:ubuntu-22)
 - Testing:
-  - ✓ Invalid values rejected
-  - ✓ Warnings logged
-  - ✓ Defaults used on failure
-- Commit: `feat: add configuration validation and expanded variable support`
+  - ✓ Docker build succeeds
+  - ✓ Python script accessible at `/usr/local/bin/config_from_env_vars/main.py`
+- Commit: `feat: install config_from_env_vars Python script in Docker image`
 
-**PR 3.5: Bootstrap Integration**
-- Branch: `feat/config-integration`
+**PR 3.3: Bootstrap Integration**
+- Branch: `feat/bootstrap-python-config`
 - Files:
-  - Update `scripts/vein-bootstrap.sh` - Call config generator
-  - Update `docker-compose.yml` - Add config ENV examples
+  - Update `bin/vein-bootstrap.sh` - Call Python script in `generate_config_files()`
+- Changes:
+  - Export basic `CONFIG_*` environment variables
+  - Call: `python3 /usr/local/bin/config_from_env_vars/main.py --path "${SERVER_DIR}/Vein/Saved/Config/LinuxServer"`
+  - Variables: `SERVER_NAME`, `SERVER_PASSWORD`, `ADMIN_PASSWORD`, `MAX_PLAYERS`
+  - Respect `MANUAL_CONFIG=True` to skip generation
 - Testing:
-  - ✓ Config generated before server start
-  - ✓ ENV vars correctly populate INI files
-  - ✓ Missing ENV vars use defaults
-  - ✓ Config changes apply on restart
-  - ✓ Server respects configuration
-- Commit: `feat: integrate config generation into bootstrap process`
+  - ✓ Bootstrap generates Game.ini and Engine.ini
+  - ✓ ENV vars correctly populate INI sections
+  - ✓ MANUAL_CONFIG=True skips generation
+  - ✓ Files created in correct directory
+- Commit: `feat: integrate Python config generation into bootstrap`
 
-**Phase 3 Complete:** ENV-driven configuration with presets
+**PR 3.4: docker-compose ENV Variable Examples**
+- Branch: `feat/config-env-examples`
+- Files:
+  - Update `docker-compose.yml` - Add Phase 3 configuration variables
+- Changes:
+  - Document `CONFIG_*` variable format
+  - Add basic server variables: `SERVER_NAME`, `SERVER_PASSWORD`, `ADMIN_PASSWORD`, `MAX_PLAYERS`
+  - Add commented examples: `CONFIG_Game_ServerSettings_PvPEnabled`, etc.
+  - Explain special character replacement (`SLASH`, `DOT`)
+- Testing:
+  - ✓ docker-compose.yml validates
+  - ✓ ENV vars documented clearly
+  - ✓ Examples work when uncommented
+- Commit: `feat: add Phase 3 CONFIG_ variable examples to docker-compose`
+
+**PR 3.5: Integration Testing & Documentation**
+- Branch: `feat/config-integration-test`
+- Tasks:
+  1. Build Docker image with all Phase 3 changes
+  2. Test with various `CONFIG_*` environment variables
+  3. Verify generated Game.ini and Engine.ini files
+  4. Test MANUAL_CONFIG=True mode
+  5. Update CLAUDE.md with `CONFIG_*` variable documentation
+- Testing:
+  - ✓ First run generates configs from ENV vars
+  - ✓ `CONFIG_Game_*` variables populate Game.ini correctly
+  - ✓ `CONFIG_Engine_*` variables populate Engine.ini correctly
+  - ✓ SLASH and DOT replacements work (`CONFIG_Game_SLASH_Script_SLASH_Engine_DOT_GameSession_MaxPlayers`)
+  - ✓ Backup files created when configs change
+  - ✓ MANUAL_CONFIG=True skips generation
+  - ✓ Server starts with generated configs
+- Commit: `feat: complete Phase 3 config integration with testing`
+
+**Phase 3 Complete:** Python-based ENV-driven configuration (ark-sa-server method)
+
+**Key Changes from Original Plan:**
+- ❌ **REMOVED:** Game.ini.template, Engine.ini.template, preset .env files, bash vein-config-generator.sh
+- ✅ **ADDED:** Python config_from_env_vars script (direct copy from ark-sa-server)
+- ✅ **BENEFIT:** Simpler, proven code, matches reference architecture exactly
 
 ---
 
