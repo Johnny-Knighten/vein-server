@@ -67,20 +67,31 @@ RUN if ! id -u steam > /dev/null 2>&1; then \
 # /vein-server/server   - VOLUME: Game server files (SteamCMD downloads here)
 # /vein-server/logs     - VOLUME: All log files (supervisord, server, scripts)
 # /vein-server/backups  - VOLUME: Backup archives
-# /vein-server/scripts  - Scripts (copied in PR 1.8)
-# /vein-server/templates - Config templates (copied in PR 1.8)
-# /vein-server/supervisord - Supervisord config (copied in PR 1.8)
-# /vein-server/cron     - Cron config (copied in PR 1.8)
+# /vein-server/bin      - Scripts
+# /vein-server/templates - Config templates (Phase 3)
+# /vein-server/supervisord - Supervisord config
+# /vein-server/cron     - Cron config (Phase 5)
 # ============================================================================
 RUN mkdir -p \
     /vein-server/server \
     /vein-server/logs \
     /vein-server/backups \
-    /vein-server/scripts \
+    /vein-server/bin \
     /vein-server/templates \
     /vein-server/supervisord \
-    /vein-server/cron && \
-    chown -R steam:steam /vein-server
+    /vein-server/cron
+
+# -----------------------------------------------------------------------------
+# Copy Scripts and Configuration
+# -----------------------------------------------------------------------------
+COPY bin/ /vein-server/bin/
+COPY supervisord/ /vein-server/supervisord/
+
+# -----------------------------------------------------------------------------
+# Set Ownership
+# -----------------------------------------------------------------------------
+RUN chown -R steam:steam /vein-server && \
+    chmod +x /vein-server/bin/*.sh
 
 # -----------------------------------------------------------------------------
 # Set Working Directory
@@ -123,8 +134,6 @@ HEALTHCHECK --interval=60s --timeout=10s --start-period=300s --retries=3 \
 # -----------------------------------------------------------------------------
 # Container Metadata
 # -----------------------------------------------------------------------------
-# Override base image ENTRYPOINT (steamcmd) - will be set to system-bootstrap.sh in PR 1.8
-# For now, no entrypoint allows container to run bash for testing
+# Set entrypoint to system-bootstrap.sh (PID 1)
 # ============================================================================
-ENTRYPOINT []
-CMD ["/bin/bash"]
+ENTRYPOINT ["/vein-server/bin/system-bootstrap.sh"]
