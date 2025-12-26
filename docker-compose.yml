@@ -47,14 +47,13 @@ services:
       - vein-server-backups:/vein-server/backups # Backup archives
 
     # -------------------------------------------------------------------------
-    # Environment Variables - Phase 1 MVP
+    # Environment Variables
     # -------------------------------------------------------------------------
-    # Minimal configuration for Phase 1
-    # Additional variables added in later phases:
-    # - Phase 2: Update settings (VEIN_AUTO_UPDATE, etc.)
-    # - Phase 3: 251+ gameplay settings
-    # - Phase 4: Backup settings
-    # - Phase 5: Scheduling settings
+    # Phase 1: Basic server settings
+    # Phase 2: Update and validation settings (added below)
+    # Phase 3: 251+ gameplay settings (future)
+    # Phase 4: Backup settings (future)
+    # Phase 5: Scheduling settings (future)
     # -------------------------------------------------------------------------
     environment:
       # Server Identity
@@ -68,6 +67,27 @@ services:
       # Network Ports (must match ports section above)
       VEIN_SERVER_PORT: "7777"
       VEIN_SERVER_QUERY_PORT: "27015"
+
+      # -----------------------------------------------------------------------
+      # Phase 2: Update System Settings
+      # -----------------------------------------------------------------------
+      # Server directory (where SteamCMD downloads files)
+      SERVER_DIR: "/vein-server/server"
+
+      # Auto-update on container boot
+      UPDATE_ON_BOOT: "True"  # True/False - Check for updates on startup
+
+      # File validation after update
+      VEIN_VALIDATE_FILES: "true"  # true/false - Verify VeinServer.sh exists
+
+      # Manual configuration mode (skips config generation)
+      MANUAL_CONFIG: "False"  # True/False - Set to True to use your own configs
+
+      # Debug mode (enables bash -x tracing)
+      DEBUG: "false"  # true/false - Enable verbose logging
+
+      # Dry run mode (test without actually starting services)
+      DRY_RUN: "False"  # True/False - For testing only
 
     # -------------------------------------------------------------------------
     # Resource Limits (Optional - Recommended for Production)
