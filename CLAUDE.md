@@ -441,14 +441,20 @@ steamcmd +force_install_dir /vein-server/server \
 
 ### Core Server Settings
 
+**Phase 3 Complete:** Configuration system uses Python-based ENV → INI conversion (ark-sa-server method)
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VEIN_SERVER_NAME` | "Vein Server" | Server name shown in browser |
+| `VEIN_SERVER_DESCRIPTION` | "A Vein dedicated server" | Server description/MOTD |
 | `VEIN_SERVER_PASSWORD` | "" | Server password (empty = no password) |
-| `VEIN_SERVER_ADMIN_PASSWORD` | "admin" | Admin password |
-| `VEIN_SERVER_MAX_PLAYERS` | 32 | Maximum players |
+| `VEIN_SERVER_PUBLIC` | "True" | Show in server browser (True/False) |
+| `VEIN_SERVER_MAX_PLAYERS` | 16 | Maximum players (Vein default) |
 | `VEIN_SERVER_PORT` | 7777 | Game port (UDP) |
 | `VEIN_SERVER_QUERY_PORT` | 27015 | Query port (UDP) |
+| `VEIN_BIND_ADDR` | "0.0.0.0" | IP address to bind |
+| `VEIN_HEARTBEAT_INTERVAL` | "5.0" | Heartbeat interval (seconds) |
+| `VEIN_VAC_ENABLED` | "0" | Enable Steam VAC (0=disabled, 1=enabled) |
 
 ### Update Settings
 
@@ -477,32 +483,45 @@ steamcmd +force_install_dir /vein-server/server \
 | `VEIN_UPDATE_CRON` | "0 3 * * *" | Update schedule (3 AM daily) |
 | `VEIN_BACKUP_CRON` | "0 */6 * * *" | Backup schedule (every 6 hours) |
 
-### Gameplay Settings (Examples - 251+ total)
+### Advanced Configuration (CONFIG_ Variables)
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VEIN_PVP_ENABLED` | false | Enable PvP mode |
-| `VEIN_PVP_DAMAGE_MULTIPLIER` | 1.0 | PvP damage multiplier |
-| `VEIN_ZOMBIE_SPAWN_RATE` | 1.0 | Zombie spawn rate multiplier |
-| `VEIN_ZOMBIE_DIFFICULTY` | 1.0 | Zombie difficulty multiplier |
-| `VEIN_TIME_DAY_MULTIPLIER` | 1.0 | Day length multiplier |
-| `VEIN_TIME_NIGHT_MULTIPLIER` | 1.0 | Night length multiplier |
-| `VEIN_LOOT_RESPAWN_TIME` | 3600 | Loot respawn time (seconds) |
-| `VEIN_PERFORMANCE_MAX_PLAYERS` | 32 | Server max players |
+**Phase 3 Feature:** Direct INI control for advanced users
+
+For settings not covered by simple ENV vars, use `CONFIG_` variables to directly control Game.ini:
+
+**Format:** `CONFIG_<filename>_<section>_<variable>=<value>`
+- Use `SLASH` for `/` in section names
+- Use `DOT` for `.` in section names
+
+**Examples:**
+
+| CONFIG_ Variable | Maps To | Description |
+|------------------|---------|-------------|
+| `CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs` | `[/Script/Vein.VeinGameSession]` → `AdminSteamIDs` | Admin Steam IDs |
+| `CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_SuperAdminSteamIDs` | `[/Script/Vein.VeinGameSession]` → `SuperAdminSteamIDs` | Super admin Steam IDs |
+| `CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameStateBase_WhitelistedPlayers` | `[/Script/Vein.VeinGameStateBase]` → `WhitelistedPlayers` | Server whitelist |
+
+**Multiple Values:** For array-style values (like multiple admin IDs), use `+` prefix in Vein's Game.ini:
+```ini
+AdminSteamIDs=76561198012345678
++AdminSteamIDs=76561198087654321
+```
+
+**Note:** CONFIG_ variables bypass bootstrap transformation and directly set INI values. See official Vein documentation for all available Game.ini settings.
 
 ### Health Check Settings
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VEIN_HEALTH_CHECK_ENABLED` | true | Enable Docker healthcheck |
-| `VEIN_RESTART_ON_CRASH` | true | Auto-restart on crash |
-| `VEIN_CRASH_RESTART_DELAY` | 60 | Delay before restart (seconds) |
+| `VEIN_HEALTH_CHECK_ENABLED` | true | Enable Docker healthcheck (future) |
+| `VEIN_RESTART_ON_CRASH` | true | Auto-restart on crash (future) |
+| `VEIN_CRASH_RESTART_DELAY` | 60 | Delay before restart (seconds, future) |
 
-### Preset System
+### Manual Configuration Mode
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VEIN_PRESET` | "default" | Load preset (default, pve-friendly, pvp-hardcore) |
+| `MANUAL_CONFIG` | "False" | Set to "True" to skip automatic config generation and use your own Game.ini/Engine.ini files |
 
 ---
 
