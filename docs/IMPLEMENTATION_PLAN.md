@@ -332,95 +332,148 @@ Container Start → Bootstrap → Updater (if needed) → Server Running
 ---
 
 ### Phase 4: Backup System
-**Goal:** Automated backups with multiple triggers, compression, and retention
+**Goal:** Automated backups with multiple triggers, compression, and retention (ark-sa-server parity)
+
+**NOTE:** ENV variables match ark-sa-server exactly - NO `VEIN_` prefix (system-level settings)
 
 **PR 4.1: Core Backup Script**
 - Branch: `feat/backup-core`
 - Files:
-  - `scripts/vein-backup.sh` - Main backup logic
+  - `bin/vein-backup.sh` - Main backup logic
 - Features:
   - Backup `Vein/Saved` directory
-  - Timestamped naming: `vein-backup-YYYY-MM-DD-HH-MM-SS.tar.gz`
-  - tar.gz compression
+  - Timestamped naming: `vein-backup-YYYY-MM-DD-HH-MM-SS.{tar.gz|zip}`
+  - Boolean `ZIP_BACKUPS` handling (True=ZIP, False=tar.gz)
+  - Empty `RETAIN_BACKUPS` = unlimited backups
   - Basic timeout (600s)
-  - ENV vars: `VEIN_BACKUP_ENABLED`, `VEIN_BACKUP_FORMAT`
+  - ENV vars: `ZIP_BACKUPS`, `RETAIN_BACKUPS`
 - Testing:
   - ✓ Shellcheck passes
-  - ✓ Creates valid archives
+  - ✓ Creates tar.gz when `ZIP_BACKUPS=False`
+  - ✓ Creates ZIP when `ZIP_BACKUPS=True`
+  - ✓ Unlimited backups when `RETAIN_BACKUPS=""`
   - ✓ Timeout works
 - Commit: `feat: add core backup script with compression`
 
 **PR 4.2: Retention Policy**
 - Branch: `feat/backup-retention`
 - Files:
-  - Update `scripts/vein-backup.sh`
-  - Update `scripts/common-functions.sh` - Add retention helpers
+  - Update `bin/vein-backup.sh`
+  - Update `bin/common-functions.sh` - Add retention helpers
 - Features:
-  - Keep N most recent backups
-  - Delete oldest backups
-  - ENV var: `VEIN_BACKUP_RETENTION` (default: 10)
+  - `cleanup_old_backups()` function
+  - Handle empty `RETAIN_BACKUPS` (unlimited)
+  - Sort by timestamp, delete oldest first
+  - ENV var: `RETAIN_BACKUPS` (default: empty = unlimited)
 - Testing:
-  - ✓ Old backups deleted correctly
-  - ✓ Retention count respected
+  - ✓ Empty value keeps all backups
+  - ✓ `RETAIN_BACKUPS=10` deletes 11th oldest
+  - ✓ Works with both tar.gz and ZIP
 - Commit: `feat: add backup retention policy management`
 
-**PR 4.3: Backup Verification & ZIP Support**
+**PR 4.3: Backup Verification & Error Handling**
 - Branch: `feat/backup-verification`
 - Files:
-  - Update `scripts/vein-backup.sh`
+  - Update `bin/vein-backup.sh`
 - Features:
   - Test archive integrity after creation
-  - ZIP format support
-  - Better error handling
+  - Disk space check before backup
+  - Better error messages and logging
 - Testing:
-  - ✓ tar.gz verified
-  - ✓ ZIP verified
+  - ✓ tar.gz verified correctly
+  - ✓ ZIP verified correctly
   - ✓ Corrupted archives detected
-- Commit: `feat: add backup verification and ZIP format support`
+  - ✓ Fails gracefully on low disk space
+- Commit: `feat: add backup verification and error handling`
 
 **PR 4.4: On-Stop Backup Trigger**
 - Branch: `feat/backup-on-stop`
 - Files:
-  - Update `scripts/system-bootstrap.sh` - Add backup to cleanup()
-  - `supervisord/supervisord.conf` - Add vein-backup-on-stop process
+  - Update `bin/system-bootstrap.sh` - Add backup to cleanup()
+  - Update `supervisord/supervisord.conf` - Add vein-backup-on-stop process
 - Features:
-  - Trigger backup on SIGTERM
+  - Check `BACKUP_ON_STOP` in cleanup() function
+  - Trigger supervisord process `vein-backup-on-stop`
   - Wait for completion (600s max)
-  - ENV var: `VEIN_BACKUP_ON_STOP` (default: true)
+  - ENV var: `BACKUP_ON_STOP` (default: True)
 - Testing:
   - ✓ Backup created on `docker stop`
-  - ✓ Container waits for backup
+  - ✓ Container waits for backup completion
+  - ✓ `BACKUP_ON_STOP=False` skips backup
   - ✓ Timeout prevents hang
 - Commit: `feat: add on-stop backup trigger for graceful shutdown`
 
 **PR 4.5: Pre-Update Backup Trigger**
 - Branch: `feat/backup-pre-update`
 - Files:
-  - Update `scripts/vein-updater.sh` - Trigger backup before SteamCMD
-  - `supervisord/supervisord.conf` - Add vein-backup-pre-update process
+  - Update `bin/vein-updater.sh` - Trigger backup before SteamCMD
+  - Update `supervisord/supervisord.conf` - Add vein-backup-pre-update process
 - Features:
-  - Backup before SteamCMD runs
+  - Check `BACKUP_BEFORE_UPDATE` before SteamCMD runs
+  - Trigger supervisord process `vein-backup-pre-update`
   - Critical for Server.vns safety (5-min overwrite)
-  - ENV var: `VEIN_BACKUP_PRE_UPDATE` (default: true)
+  - ENV var: `BACKUP_BEFORE_UPDATE` (default: True for Vein, False for ARK)
 - Testing:
   - ✓ Pre-update backup created
-  - ✓ Update waits for backup
+  - ✓ Update waits for backup completion
+  - ✓ `BACKUP_BEFORE_UPDATE=False` skips backup
   - ✓ Server.vns safely backed up
 - Commit: `feat: add pre-update backup trigger for data safety`
 
-**PR 4.6: Integration & E2E Testing**
+**PR 4.6: Scheduled Restart Backup Trigger (NEW - Missing Feature)**
+- Branch: `feat/backup-on-restart`
+- Files:
+  - Update `bin/vein-scheduled-restart.sh` - Add backup trigger
+  - Update `supervisord/supervisord.conf` - Add vein-backup-on-scheduled-restart process
+- Features:
+  - Check `BACKUP_ON_SCHEDULED_RESTART` in restart handler
+  - Trigger backup before server stop (separate from standalone backups)
+  - ENV var: `BACKUP_ON_SCHEDULED_RESTART` (default: False)
+- Testing:
+  - ✓ Backup created before scheduled restart
+  - ✓ `BACKUP_ON_SCHEDULED_RESTART=False` skips backup
+  - ✓ Works independently of `SCHEDULED_BACKUP`
+- Commit: `feat: add scheduled restart backup trigger`
+
+**PR 4.7: Standalone Scheduled Backup Setup**
+- Branch: `feat/scheduled-backup-setup`
+- Files:
+  - Update `bin/vein-scheduled-backup.sh` - Standalone backup handler
+  - Update `bin/cron-setup.sh` - Add SCHEDULED_BACKUP logic
+- Features:
+  - Check `SCHEDULED_BACKUP` flag to enable cron job
+  - Use `BACKUP_CRON` schedule for standalone backups
+  - Independent of restart/update backups
+  - ENV vars: `SCHEDULED_BACKUP` (default: False), `BACKUP_CRON` (default: "0 6 * * *")
+- Testing:
+  - ✓ Cron job created when `SCHEDULED_BACKUP=True`
+  - ✓ No cron job when `SCHEDULED_BACKUP=False`
+  - ✓ `BACKUP_CRON` schedule respected
+  - ✓ Backup runs without stopping server
+- Commit: `feat: add standalone scheduled backup configuration`
+
+**PR 4.8: Integration & E2E Testing**
 - Branch: `feat/backup-integration`
 - Files:
-  - Update `docker-compose.yml` - Add backup ENV examples
+  - Update `docker-compose.yml` - Add Phase 4 backup ENV vars
 - Testing:
-  - ✓ Backup on stop works
-  - ✓ Pre-update backup works
-  - ✓ Retention policy enforced
-  - ✓ Archives verified
+  - ✓ All four backup triggers work independently:
+    1. `BACKUP_ON_STOP=True` → shutdown backup
+    2. `BACKUP_BEFORE_UPDATE=True` → pre-update backup
+    3. `BACKUP_ON_SCHEDULED_RESTART=True` → pre-restart backup
+    4. `SCHEDULED_BACKUP=True` + `BACKUP_CRON` → standalone cron backup
+  - ✓ Retention policy enforced across all triggers
+  - ✓ ZIP and tar.gz formats work correctly
+  - ✓ Unlimited retention works (empty `RETAIN_BACKUPS`)
+  - ✓ Backup archives verified successfully
   - ✓ Backup restores successfully
 - Commit: `feat: integrate backup system with all triggers`
 
-**Phase 4 Complete:** Multi-trigger backup with retention
+**Phase 4 Complete:** Multi-trigger backup with retention (8 PRs, ark-sa-server parity)
+
+**Key Differences from ARK:**
+- `BACKUP_BEFORE_UPDATE` defaults to `True` (Vein-specific safety due to Server.vns 5-min overwrite)
+- All other defaults match ARK exactly
 
 ---
 
@@ -832,12 +885,14 @@ vein-server/
 - `VEIN_VALIDATE_FILES` - Validate after update (default: true)
 - `VEIN_UPDATE_ON_START` - Update before first run (default: true)
 
-**Backups:**
-- `VEIN_BACKUP_ENABLED` - Enable backups (default: true)
-- `VEIN_BACKUP_RETENTION` - Keep N backups (default: 10)
-- `VEIN_BACKUP_FORMAT` - tar.gz or zip (default: tar.gz)
-- `VEIN_BACKUP_ON_STOP` - Backup on shutdown (default: true)
-- `VEIN_BACKUP_PRE_UPDATE` - Backup before update (default: true)
+**Backups (ark-sa-server parity - NO VEIN_ prefix):**
+- `BACKUP_ON_STOP` - Backup on shutdown (default: True)
+- `BACKUP_ON_SCHEDULED_RESTART` - Backup before scheduled restarts (default: False)
+- `BACKUP_BEFORE_UPDATE` - Backup before updates (default: True for Vein, False for ARK)
+- `SCHEDULED_BACKUP` - Enable standalone backup cron (default: False)
+- `BACKUP_CRON` - Standalone backup schedule (default: "0 6 * * *")
+- `ZIP_BACKUPS` - Use ZIP format (default: False = tar.gz)
+- `RETAIN_BACKUPS` - Keep N backups (default: empty = unlimited)
 
 **Scheduling:**
 - `VEIN_RESTART_ENABLED` - Enable scheduled restarts (default: false)
@@ -929,12 +984,13 @@ docker logs -f vein-server
 - [ ] Configuration presets
 - [ ] Validation for required settings
 
-### ✅ Backup System:
-- [ ] On-stop backups
-- [ ] Pre-update backups
-- [ ] Scheduled backups
-- [ ] Retention policy management
-- [ ] tar.gz and ZIP compression
+### ✅ Backup System (ark-sa-server parity):
+- [ ] On-stop backups (`BACKUP_ON_STOP`)
+- [ ] Pre-update backups (`BACKUP_BEFORE_UPDATE`)
+- [ ] Scheduled restart backups (`BACKUP_ON_SCHEDULED_RESTART`)
+- [ ] Standalone scheduled backups (`SCHEDULED_BACKUP` + `BACKUP_CRON`)
+- [ ] Retention policy management (`RETAIN_BACKUPS` with unlimited default)
+- [ ] tar.gz and ZIP compression (`ZIP_BACKUPS` boolean)
 - [ ] Backup verification
 - [ ] 600s timeout protection
 
@@ -998,8 +1054,9 @@ docker logs -f vein-server
 This plan provides a comprehensive roadmap for creating a production-ready Vein game server Docker container with full feature parity to ark-sa-server, adapted for Vein's native Linux execution and unique configuration system. The phased approach allows for incremental development, testing, and user feedback, with each phase delivering tangible value.
 
 **Estimated Timeline:** 3-4 weeks for feature parity (Phases 1-7)
-**Total PRs:** ~40 PRs across 7 phases
+**Total PRs:** ~45 PRs across 7 phases (Phase 4 has 8 PRs for ark-sa-server parity)
 **Phase 1 Timeline:** 1 week (8 PRs - MVP with working server)
+**Phase 4 Timeline:** Updated to 8 PRs (added `BACKUP_ON_SCHEDULED_RESTART` feature)
 
 ## Branch Strategy
 
