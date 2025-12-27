@@ -49,24 +49,36 @@ services:
     # -------------------------------------------------------------------------
     # Environment Variables
     # -------------------------------------------------------------------------
-    # Phase 1: Basic server settings
+    # Phase 1 & 3: Core server configuration (simple ENV vars)
     # Phase 2: Update and validation settings (added below)
-    # Phase 3: 251+ gameplay settings (future)
+    # Phase 3: Advanced configuration (CONFIG_ vars, added below)
     # Phase 4: Backup settings (future)
     # Phase 5: Scheduling settings (future)
     # -------------------------------------------------------------------------
     environment:
+      # -----------------------------------------------------------------------
+      # Phase 1 & 3: Core Server Configuration
+      # -----------------------------------------------------------------------
+      # Simple environment variables (transformed to CONFIG_ in bootstrap)
+      # These match Vein's Game.ini structure
+
       # Server Identity
       VEIN_SERVER_NAME: "Vein Server"
+      VEIN_SERVER_DESCRIPTION: "A Vein dedicated server"
       VEIN_SERVER_PASSWORD: ""  # Empty = no password required
-      VEIN_SERVER_ADMIN_PASSWORD: "changeme"  # CHANGE THIS IN PRODUCTION
+      VEIN_SERVER_PUBLIC: "True"  # Show in server browser
 
       # Server Capacity
-      VEIN_SERVER_MAX_PLAYERS: "32"
+      VEIN_SERVER_MAX_PLAYERS: "16"  # Default is 16
 
-      # Network Ports (must match ports section above)
+      # Network Configuration
       VEIN_SERVER_PORT: "7777"
       VEIN_SERVER_QUERY_PORT: "27015"
+      VEIN_BIND_ADDR: "0.0.0.0"
+      VEIN_HEARTBEAT_INTERVAL: "5.0"
+
+      # Steam Configuration
+      VEIN_VAC_ENABLED: "0"  # 0=disabled, 1=enabled
 
       # -----------------------------------------------------------------------
       # Phase 2: Update System Settings
@@ -88,6 +100,18 @@ services:
 
       # Dry run mode (test without actually starting services)
       DRY_RUN: "False"  # True/False - For testing only
+
+      # -----------------------------------------------------------------------
+      # Phase 3: Advanced Configuration (Optional)
+      # -----------------------------------------------------------------------
+      # Direct CONFIG_ variables for advanced users (bypasses bootstrap transformation)
+      # Format: CONFIG_Game_<section>_<variable>=<value>
+      # Use SLASH for / and DOT for . in section names
+      #
+      # Examples (uncomment to use):
+      # CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs: "76561198012345678"
+      # CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_SuperAdminSteamIDs: "76561198012345678"
+      # CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameStateBase_WhitelistedPlayers: "76561198012345678"
 
     # -------------------------------------------------------------------------
     # Resource Limits (Optional - Recommended for Production)
