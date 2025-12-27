@@ -102,6 +102,43 @@ services:
       DRY_RUN: "False"  # True/False - For testing only
 
       # -----------------------------------------------------------------------
+      # Phase 4: Backup System Settings
+      # -----------------------------------------------------------------------
+      # Backup triggers (match ark-sa-server pattern exactly)
+      # Note: No VEIN_ prefix - these are system-level settings
+
+      # Compression format
+      ZIP_BACKUPS: "False"  # True=ZIP, False=tar.gz (smaller, Linux-native)
+
+      # Retention policy (empty = unlimited, safer for new users)
+      RETAIN_BACKUPS: ""  # Integer or empty - Number of backups to keep
+
+      # Backup before scheduled restart cron jobs
+      BACKUP_ON_SCHEDULED_RESTART: "False"  # True/False - Backup before restart
+
+      # Backup before SteamCMD updates (CRITICAL for Vein's Server.vns)
+      # Vein default: True (safer than ARK due to 5-min save overwrite)
+      BACKUP_BEFORE_UPDATE: "True"  # True/False - Backup before update
+
+      # Enable standalone scheduled backup cron jobs
+      SCHEDULED_BACKUP: "False"  # True/False - Enable backup cron
+
+      # Standalone backup schedule (if SCHEDULED_BACKUP=True)
+      BACKUP_CRON: "0 6 * * *"  # Cron format - 6 AM daily default
+
+      # Enable scheduled server restarts
+      SCHEDULED_RESTART: "False"  # True/False - Enable restart cron
+
+      # Scheduled restart cron (if SCHEDULED_RESTART=True)
+      RESTART_CRON: "0 4 * * *"  # Cron format - 4 AM daily default
+
+      # Enable scheduled server updates
+      SCHEDULED_UPDATE: "False"  # True/False - Enable update cron
+
+      # Scheduled update cron (if SCHEDULED_UPDATE=True)
+      UPDATE_CRON: "0 3 * * *"  # Cron format - 3 AM daily default
+
+      # -----------------------------------------------------------------------
       # Phase 3: Advanced Configuration (Optional)
       # -----------------------------------------------------------------------
       # Direct CONFIG_ variables for advanced users (bypasses bootstrap transformation)
