@@ -435,24 +435,7 @@ Container Start → Bootstrap → Updater (if needed) → Server Running
   - ✓ Works independently of `SCHEDULED_BACKUP`
 - Commit: `feat: add scheduled restart backup trigger`
 
-**PR 4.7: Standalone Scheduled Backup Setup**
-- Branch: `feat/scheduled-backup-setup`
-- Files:
-  - Update `bin/vein-scheduled-backup.sh` - Standalone backup handler
-  - Update `bin/cron-setup.sh` - Add SCHEDULED_BACKUP logic
-- Features:
-  - Check `SCHEDULED_BACKUP` flag to enable cron job
-  - Use `BACKUP_CRON` schedule for standalone backups
-  - Independent of restart/update backups
-  - ENV vars: `SCHEDULED_BACKUP` (default: False), `BACKUP_CRON` (default: "0 6 * * *")
-- Testing:
-  - ✓ Cron job created when `SCHEDULED_BACKUP=True`
-  - ✓ No cron job when `SCHEDULED_BACKUP=False`
-  - ✓ `BACKUP_CRON` schedule respected
-  - ✓ Backup runs without stopping server
-- Commit: `feat: add standalone scheduled backup configuration`
-
-**PR 4.8: Integration & E2E Testing**
+**PR 4.7: Integration & E2E Testing**
 - Branch: `feat/backup-integration`
 - Files:
   - Update `docker-compose.yml` - Add Phase 4 backup ENV vars
@@ -469,7 +452,9 @@ Container Start → Bootstrap → Updater (if needed) → Server Running
   - ✓ Backup restores successfully
 - Commit: `feat: integrate backup system with all triggers`
 
-**Phase 4 Complete:** Multi-trigger backup with retention (8 PRs, ark-sa-server parity)
+**Phase 4 Complete:** Multi-trigger backup with retention (7 PRs, ark-sa-server parity)
+
+**NOTE:** PRs 4.3-4.6 were consolidated into system-bootstrap.sh following ark-sa-server's pattern. All backup trigger logic is centralized in setup_cron_jobs() rather than separate handler scripts.
 
 **Key Differences from ARK:**
 - `BACKUP_BEFORE_UPDATE` defaults to `True` (Vein-specific safety due to Server.vns 5-min overwrite)
@@ -1054,9 +1039,9 @@ docker logs -f vein-server
 This plan provides a comprehensive roadmap for creating a production-ready Vein game server Docker container with full feature parity to ark-sa-server, adapted for Vein's native Linux execution and unique configuration system. The phased approach allows for incremental development, testing, and user feedback, with each phase delivering tangible value.
 
 **Estimated Timeline:** 3-4 weeks for feature parity (Phases 1-7)
-**Total PRs:** ~45 PRs across 7 phases (Phase 4 has 8 PRs for ark-sa-server parity)
+**Total PRs:** ~44 PRs across 7 phases (Phase 4 has 7 PRs for ark-sa-server parity)
 **Phase 1 Timeline:** 1 week (8 PRs - MVP with working server)
-**Phase 4 Timeline:** Updated to 8 PRs (added `BACKUP_ON_SCHEDULED_RESTART` feature)
+**Phase 4 Timeline:** 7 PRs (PRs 4.3-4.6 consolidated into system-bootstrap.sh per ark-sa-server pattern)
 
 ## Branch Strategy
 
