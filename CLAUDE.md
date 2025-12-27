@@ -466,22 +466,26 @@ steamcmd +force_install_dir /vein-server/server \
 
 ### Backup Settings
 
+**NOTE:** Backup variables match ark-sa-server pattern (NO `VEIN_` prefix - system-level settings)
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VEIN_BACKUP_ENABLED` | true | Enable backup system |
-| `VEIN_BACKUP_RETENTION` | 10 | Number of backups to keep |
-| `VEIN_BACKUP_FORMAT` | tar.gz | Compression format (tar.gz or zip) |
-| `VEIN_BACKUP_ON_STOP` | true | Backup on container shutdown |
-| `VEIN_BACKUP_PRE_UPDATE` | true | Backup before SteamCMD update |
+| `BACKUP_ON_STOP` | True | Create backup on container shutdown/SIGTERM |
+| `BACKUP_ON_SCHEDULED_RESTART` | False | Create backup before scheduled restarts |
+| `BACKUP_BEFORE_UPDATE` | True | Create backup before SteamCMD update (Vein default: True due to Server.vns overwrite) |
+| `SCHEDULED_BACKUP` | False | Enable standalone scheduled backup jobs |
+| `BACKUP_CRON` | "0 6 * * *" | Cron schedule for standalone backups (6 AM daily) |
+| `ZIP_BACKUPS` | False | Use ZIP compression (False = tar.gz, True = ZIP) |
+| `RETAIN_BACKUPS` | "" | Number of backups to keep (empty = unlimited) |
 
 ### Scheduling Settings
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VEIN_RESTART_ENABLED` | false | Enable scheduled restarts |
-| `VEIN_RESTART_CRON` | "0 4 * * *" | Restart schedule (4 AM daily) |
-| `VEIN_UPDATE_CRON` | "0 3 * * *" | Update schedule (3 AM daily) |
-| `VEIN_BACKUP_CRON` | "0 */6 * * *" | Backup schedule (every 6 hours) |
+| `SCHEDULED_RESTART` | False | Enable scheduled server restarts |
+| `RESTART_CRON` | "0 4 * * *" | Restart schedule (4 AM daily) |
+| `SCHEDULED_UPDATE` | False | Enable scheduled server updates |
+| `UPDATE_CRON` | "0 3 * * *" | Update schedule (3 AM daily) |
 
 ### Advanced Configuration (CONFIG_ Variables)
 

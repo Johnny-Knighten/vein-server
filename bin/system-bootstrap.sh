@@ -9,8 +9,15 @@ echo "System Bootstrap - Starting"
 cleanup() {
   echo "System Bootstrap - Cleanup Starting"
   supervisorctl stop all
-  supervisorctl start vein-backup
-  wait_for_backup_completion
+
+  if [[ "$BACKUP_ON_STOP" = "True" ]]; then
+    echo "System Bootstrap - BACKUP_ON_STOP Enabled, Starting Backup"
+    supervisorctl start vein-backup
+    wait_for_backup_completion
+  else
+    echo "System Bootstrap - BACKUP_ON_STOP Disabled, Skipping Backup"
+  fi
+
   supervisorctl exit
   echo "System Bootstrap - Cleanup Stopping"
 }
