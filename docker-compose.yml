@@ -113,6 +113,9 @@ services:
       # Retention policy (empty = unlimited, safer for new users)
       RETAIN_BACKUPS: ""  # Integer or empty - Number of backups to keep
 
+      # Backup on container shutdown (CRITICAL SAFETY FEATURE)
+      BACKUP_ON_STOP: "True"  # True/False - Backup on docker stop/SIGTERM
+
       # Backup before scheduled restart cron jobs
       BACKUP_ON_SCHEDULED_RESTART: "False"  # True/False - Backup before restart
 
