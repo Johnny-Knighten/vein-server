@@ -93,6 +93,7 @@ COPY config_from_env_vars/ /usr/local/bin/config_from_env_vars/
 # -----------------------------------------------------------------------------
 RUN chown -R steam:steam /vein-server && \
     chmod +x /vein-server/bin/*.sh && \
+    chown -R steam:steam /usr/local/bin/config_from_env_vars && \
     chmod +x /usr/local/bin/config_from_env_vars/main.py
 
 # -----------------------------------------------------------------------------
@@ -101,11 +102,12 @@ RUN chown -R steam:steam /vein-server && \
 WORKDIR /vein-server
 
 # -----------------------------------------------------------------------------
-# Switch to Non-Root User
+# Note on User Privileges
 # -----------------------------------------------------------------------------
-# Security: Run container as steam user (UID:GID 1000:1000)
-# Set HOME to steam user's home directory to avoid /root/.bashrc errors
-USER steam
+# Container runs as root to allow crond to function properly.
+# Individual supervisord programs run as steam user for security.
+# This matches ark-sa-server's architecture.
+# ============================================================================
 ENV HOME=/home/steam
 
 # -----------------------------------------------------------------------------

@@ -31,9 +31,9 @@ download_and_update_vein_server() {
     local install_dir="+force_install_dir $SERVER_DIR"
 
     if [[ "$DRY_RUN" = "True" ]]; then
-        echo "DRY_RUN - steamcmd +login anonymous \"$install_dir\" \"$app_update\" +quit"
+        echo "DRY_RUN - steamcmd \"$install_dir\" +login anonymous \"$app_update\" +quit"
     else
-        steamcmd +login anonymous "$install_dir" "$app_update" +quit
+        steamcmd "$install_dir" +login anonymous "$app_update" +quit
     fi
 }
 
