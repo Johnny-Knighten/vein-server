@@ -49,7 +49,7 @@ docker exec -it vein-server bash
 docker exec vein-server supervisorctl status
 
 # Lint scripts
-shellcheck scripts/*.sh
+shellcheck bin/*.sh
 ```
 
 ---
@@ -140,25 +140,20 @@ supervisord (process manager)
 │   ├── Health check integration
 │   └── Crash detection/recovery
 │
-├── vein-backup-on-stop (priority 100, autostart=false)
-│   ├── Triggered by system-bootstrap cleanup
+├── vein-backup (priority 100, autostart=false)
+│   ├── Standalone backup triggered manually or by cron
 │   ├── 600s timeout
 │   └── Backup entire Vein/Saved directory
 │
-├── vein-backup-scheduled (priority 100, autostart=false)
-│   ├── Triggered by cron
+├── vein-backup-and-restart (priority 100, autostart=false)
+│   ├── Backup then restart server
 │   ├── 600s timeout
-│   └── Retention policy enforcement
+│   └── Used by scheduled restart with backup
 │
-├── vein-backup-pre-update (priority 100, autostart=false)
-│   ├── Triggered by vein-updater
-│   ├── 600s timeout
-│   └── Critical for data safety (Server.vns overwrites every 5 min)
-│
-└── vein-monitor (priority 60, autostart=true)
-    ├── Process health monitoring
-    ├── Crash detection
-    └── Automatic recovery with backoff
+└── vein-backup-and-update (priority 100, autostart=false)
+    ├── Backup then trigger update
+    ├── 600s timeout
+    └── Used by scheduled update with backup
 ```
 
 **Key Design Principles:**
@@ -182,49 +177,46 @@ vein-server/
 ├── README.md                              # User-facing documentation
 ├── CLAUDE.md                              # This file - AI assistant context
 ├── LICENSE                                # MIT License
+├── CONTRIBUTING.md                        # Contribution guidelines
+├── .releaserc.yaml                        # Semantic-release config
+├── package.json                           # Node.js dependencies for release
 │
 ├── .devcontainer/
 │   ├── devcontainer.json                  # Docker-in-Docker config
 │   └── post-create.sh                     # Dev tools setup script
 │
 ├── .github/
-│   └── (empty initially - CI/CD post-parity)
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug-report.md                  # Bug report template
+│   │   └── feature-request.md             # Feature request template
+│   ├── pull_request_template.md           # PR template
+│   └── workflows/
+│       ├── build-and-test.yml             # CI workflow
+│       └── release.yml                    # Release workflow
 │
-├── scripts/                               # Runtime scripts
-│   ├── system-bootstrap.sh                # PID 1 entrypoint
-│   ├── vein-bootstrap.sh                  # State router
+├── bin/                                   # Runtime scripts
+│   ├── system-bootstrap.sh                # PID 1 entrypoint, cron setup
+│   ├── vein-bootstrap.sh                  # State router, config generator
 │   ├── vein-updater.sh                    # SteamCMD manager
 │   ├── vein-server.sh                     # Server runner
-│   ├── vein-backup.sh                     # Backup manager
-│   ├── vein-config-generator.sh           # ENV → INI converter
-│   ├── vein-healthcheck.sh                # Docker healthcheck
-│   ├── vein-monitor.sh                    # Process monitoring
-│   ├── vein-scheduled-restart.sh          # Restart handler
-│   ├── vein-scheduled-update.sh           # Update handler
-│   ├── vein-scheduled-backup.sh           # Backup handler
-│   ├── cron-setup.sh                      # Cron initialization
-│   └── common-functions.sh                # Shared utilities
+│   └── vein-backup.sh                     # Backup manager (all variants)
+│
+├── config_from_env_vars/                  # Python config generator
+│   ├── __init__.py
+│   └── main.py                            # ENV → INI converter
 │
 ├── supervisord/
 │   └── supervisord.conf                   # Process orchestration
 │
-├── cron/
-│   └── vein-cron                          # Crontab template
+├── deployment-examples/
+│   ├── README.md
+│   └── docker-compose/
+│       ├── README.md
+│       ├── basic-docker-compose.yml       # Minimal setup
+│       └── advanced-docker-compose.yml    # All features
 │
-├── templates/
-│   ├── Game.ini.template                  # Game config template
-│   ├── Engine.ini.template                # Engine config template
-│   └── presets/
-│       ├── default.env                    # Default values
-│       ├── pve-friendly.env               # PvE preset
-│       └── pvp-hardcore.env               # PvP preset
-│
-├── docs/
-│   └── (future - all docs in README initially)
-│
-└── examples/
-    ├── docker-compose.basic.yml           # Basic setup
-    └── docker-compose.advanced.yml        # All features
+└── docs/
+    └── IMPLEMENTATION_PLAN.md             # Development plan
 ```
 
 ### Container Runtime Structure
@@ -256,10 +248,8 @@ vein-server/
 ├── backups/                               # VOLUME - Backup archives
 │   └── vein-backup-2025-01-15-04-00-00.tar.gz
 │
-├── scripts/                               # Copied from build
-├── templates/                             # Copied from build
-├── supervisord/                           # Copied from build
-└── cron/                                  # Copied from build
+├── bin/                                   # Runtime scripts
+└── supervisord/                           # Supervisord config
 ```
 
 ---
@@ -294,12 +284,11 @@ cleanup() {
 **Role:** State router, configuration generator, validator
 
 **Responsibilities:**
-- Generate Game.ini and Engine.ini from ENV vars (via vein-config-generator.sh)
+- Generate Game.ini and Engine.ini from ENV vars (via Python config_from_env_vars)
 - Validate required files exist (VeinServer.sh, binaries)
 - Decide state transition:
-  - If `VEIN_AUTO_UPDATE=true` and first run → start vein-updater
-  - If `VEIN_AUTO_UPDATE=true` and not first run → start vein-updater
-  - If `VEIN_AUTO_UPDATE=false` → start vein-server directly
+  - If `UPDATE_ON_BOOT=True` → start vein-updater
+  - If `UPDATE_ON_BOOT=False` → start vein-server directly
 - Log all decisions
 - Exit after routing (autorestart=false)
 
@@ -350,90 +339,26 @@ steamcmd +force_install_dir /vein-server/server \
 
 **Critical Note:** Vein's Server.vns overwrites every 5 minutes. Pre-update backup is essential.
 
-### vein-config-generator.sh
-**Role:** ENV var → INI file converter
+### config_from_env_vars/main.py
+**Role:** Python-based ENV var → INI file converter (from ark-sa-server)
 
 **Responsibilities:**
-- Parse ENV vars with `VEIN_*` prefix
-- Generate `Vein/Saved/Config/LinuxServer/Game.ini`
-- Generate `Vein/Saved/Config/LinuxServer/Engine.ini`
-- Support 251+ console variables across categories:
-  - `VEIN_SERVER_*` → Server settings
-  - `VEIN_PVP_*` → PvP settings
-  - `VEIN_ZOMBIE_*` → Zombie settings
-  - `VEIN_TIME_*` → Time settings
-  - `VEIN_LOOT_*` → Loot settings
-  - `VEIN_PERFORMANCE_*` → Performance settings
-- Load presets (default, pve-friendly, pvp-hardcore)
-- Validate numeric ranges
-- Use defaults for missing values
+- Parse ENV vars with `CONFIG_` prefix
+- Generate INI files in `Vein/Saved/Config/LinuxServer/`
+- Handle special characters: `SLASH` → `/`, `DOT` → `.`
+- Automatic backup of existing configs
+- Case-preserving INI parsing
 
-**Template Mapping Example:**
+**Example:**
 ```bash
-# ENV var: VEIN_PVP_ENABLED=true
-# Maps to: [/Script/Vein.VeinGameMode]
-#          bPvPEnabled=true
+# ENV var: CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_MaxPlayers=32
+# Maps to Game.ini:
+# [/Script/Vein.VeinGameSession]
+# MaxPlayers=32
 ```
 
-### vein-healthcheck.sh
-**Role:** Docker HEALTHCHECK implementation
-
-**Responsibilities:**
-- Check if VeinServer.sh process is running
-- Query Steam query port 27015/UDP
-- Verify log file updated recently (< 5 min)
-- Exit 0 (healthy) or 1 (unhealthy)
-
-### vein-monitor.sh
-**Role:** Process health monitoring and crash recovery
-
-**Responsibilities:**
-- Monitor vein-server process state
-- Detect crashes (unexpected exits)
-- Automatic restart with exponential backoff
-- Prevent crash loops (max 3 retries)
-- Log all recovery actions
-- Error pattern detection (OOM, segfault, Steam auth failure)
-
-### vein-scheduled-*.sh
-**Role:** Scheduled operation handlers
-
-**vein-scheduled-restart.sh:**
-- Stop server gracefully
-- Trigger backup (if `VEIN_BACKUP_ON_RESTART=true`)
-- Restart server
-
-**vein-scheduled-update.sh:**
-- Stop server gracefully
-- Trigger pre-update backup
-- Run vein-updater
-- Server restarts after update
-
-**vein-scheduled-backup.sh:**
-- Create backup without stopping server
-- Enforce retention policy
-
-### cron-setup.sh
-**Role:** Cron initialization
-
-**Responsibilities:**
-- Generate crontab from ENV vars
-- Set up cron jobs for:
-  - `VEIN_RESTART_CRON` → vein-scheduled-restart.sh
-  - `VEIN_UPDATE_CRON` → vein-scheduled-update.sh
-  - `VEIN_BACKUP_CRON` → vein-scheduled-backup.sh
-- All cron output to `/vein-server/logs/cron.log`
-
-### common-functions.sh
-**Role:** Shared utility functions
-
-**Functions:**
-- `log()` - Standardized logging with timestamps
-- `wait_for_process()` - Poll for process state
-- `wait_for_file()` - Wait for file creation
-- `check_disk_space()` - Verify sufficient disk space
-- `retry_with_backoff()` - Retry failed operations
-- `acquire_lock()` / `release_lock()` - Prevent concurrent operations
+**Note:** Cron setup is handled directly in system-bootstrap.sh (matching ark-sa-server pattern).
+Scheduled operations use supervisorctl commands directly from cron, not separate handler scripts.
 
 ---
 
@@ -567,14 +492,14 @@ docker-compose down -v
 
 ```bash
 # Lint all scripts
-shellcheck scripts/*.sh
+shellcheck bin/*.sh
 
 # Format scripts
-shfmt -i 2 -ci -w scripts/*.sh
+shfmt -i 2 -ci -w bin/*.sh
 
 # Test individual script
-bash -n scripts/vein-bootstrap.sh  # syntax check
-bash -x scripts/vein-bootstrap.sh  # debug mode
+bash -n bin/vein-bootstrap.sh  # syntax check
+bash -x bin/vein-bootstrap.sh  # debug mode
 ```
 
 ### Debugging Container
@@ -651,10 +576,12 @@ docker exec vein-server env | grep VEIN_
 ### Unit Testing (Scripts)
 
 ```bash
-# Test common functions
-source scripts/common-functions.sh
-log "Test message"
-check_disk_space /vein-server 1000000  # 1GB
+# Run shellcheck on all scripts
+shellcheck bin/*.sh
+
+# Python config tests
+cd config_from_env_vars
+python -m pytest test_main.py -v
 ```
 
 ### Integration Testing
@@ -1048,7 +975,7 @@ git commit -m "feat: add feature description"
 **4. Lint and Test Locally:**
 ```bash
 # Run shellcheck on all scripts
-shellcheck scripts/*.sh
+shellcheck bin/*.sh
 
 # Build Docker image
 docker build -t vein-server:dev .
@@ -1202,7 +1129,7 @@ When working on this project:
 1. **Follow branching strategy** - Always branch from `next`, PR to `next`
 2. **Use conventional commits** - Enables automated versioning and changelogs
 3. **Always test in devcontainer** - Ensures consistent environment
-4. **Lint scripts before commit** - Run `shellcheck scripts/*.sh`
+4. **Lint scripts before commit** - Run `shellcheck bin/*.sh`
 5. **Test each PR independently** - Don't skip manual testing
 6. **Update this CLAUDE.md** - Document new patterns and decisions
 7. **Follow ark-sa-server patterns** - Maintain consistency with reference implementation
@@ -1224,6 +1151,6 @@ This project is licensed under the MIT License - permissive, allows commercial u
 
 ---
 
-**Last Updated:** 2025-01-15
-**Version:** Planning Phase
-**Status:** Ready for Phase 1 Implementation
+**Last Updated:** 2025-12-28
+**Version:** 1.0.0
+**Status:** Feature Parity with ark-sa-server Achieved
