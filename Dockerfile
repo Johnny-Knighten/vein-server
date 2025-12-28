@@ -33,6 +33,9 @@ LABEL version="1.0.0"
 # vim: Debug/troubleshooting (minimal editor)
 # net-tools: Network diagnostics (netstat, ifconfig)
 # python3: Configuration generation (ENV → INI conversion)
+# libatomic1: Required by Vein server binary
+# libasound2: ALSA audio library required by Vein server
+# libpulse0: PulseAudio library required by Vein server
 # ============================================================================
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -48,7 +51,10 @@ RUN apt-get update && \
         bash \
         vim \
         net-tools \
-        python3 && \
+        python3 \
+        libatomic1 \
+        libasound2 \
+        libpulse0 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
