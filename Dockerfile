@@ -57,11 +57,13 @@ RUN apt-get update && \
 # -----------------------------------------------------------------------------
 # Create steam user (UID:GID 1000:1000) if it doesn't exist
 # This user will run all processes for security
+# Add steam user to crontab group for scheduled operations (Phase 5)
 # ============================================================================
 RUN if ! id -u steam > /dev/null 2>&1; then \
         groupadd -g 1000 steam && \
         useradd -u 1000 -g 1000 -m -s /bin/bash steam; \
-    fi
+    fi && \
+    usermod -a -G crontab steam
 
 # -----------------------------------------------------------------------------
 # Create Directory Structure
