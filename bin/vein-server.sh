@@ -37,7 +37,7 @@ start_server() {
     fi
 
     echo "Vein Server - Ensure steamclient.so is linked"
-    ln -s /home/steam/.local/share/Steam/steamcmd/linux64/steamclient.so "${SERVER_DIR}/Vein/Binaries/Linux/steamclient.so"
+    ln -sf /home/steam/.local/share/Steam/steamcmd/linux64/steamclient.so "${SERVER_DIR}/Vein/Binaries/Linux/steamclient.so"
 
     echo "Vein Server - Launching server process"
 
