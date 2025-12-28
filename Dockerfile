@@ -68,22 +68,18 @@ RUN if ! id -u steam > /dev/null 2>&1; then \
 # -----------------------------------------------------------------------------
 # Create Directory Structure
 # -----------------------------------------------------------------------------
-# /vein-server/server   - VOLUME: Game server files (SteamCMD downloads here)
-# /vein-server/logs     - VOLUME: All log files (supervisord, server, scripts)
-# /vein-server/backups  - VOLUME: Backup archives
-# /vein-server/bin      - Scripts
-# /vein-server/templates - Config templates (Phase 3)
+# /vein-server/server     - VOLUME: Game server files (SteamCMD downloads here)
+# /vein-server/logs       - VOLUME: All log files (supervisord, server, scripts)
+# /vein-server/backups    - VOLUME: Backup archives
+# /vein-server/bin        - Scripts
 # /vein-server/supervisord - Supervisord config
-# /vein-server/cron     - Cron config (Phase 5)
 # ============================================================================
 RUN mkdir -p \
     /vein-server/server \
     /vein-server/logs \
     /vein-server/backups \
     /vein-server/bin \
-    /vein-server/templates \
-    /vein-server/supervisord \
-    /vein-server/cron
+    /vein-server/supervisord
 
 # -----------------------------------------------------------------------------
 # Copy Scripts and Configuration
@@ -129,10 +125,9 @@ EXPOSE 7777/udp 27015/udp 8080/tcp
 VOLUME ["/vein-server/server", "/vein-server/logs", "/vein-server/backups"]
 
 # -----------------------------------------------------------------------------
-# Health Check (Placeholder)
+# Health Check
 # -----------------------------------------------------------------------------
-# Will be implemented in PR 6.3
-# For now, basic check that container is running
+# Basic check that supervisord is running
 # ============================================================================
 HEALTHCHECK --interval=60s --timeout=10s --start-period=300s --retries=3 \
     CMD pgrep -x "supervisord" > /dev/null || exit 1
