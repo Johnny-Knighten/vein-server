@@ -1,0 +1,20 @@
+version: '3'
+services:
+  vein:
+    container_name: vein
+    image: vein-server:latest
+    restart: unless-stopped
+    environment:
+      - VEIN_SERVER_NAME="Simple Vein Server"
+      - VEIN_SERVER_PASSWORD=secretpassword
+    volumes:
+      - 'vein-server:/vein-server/server'
+      - 'vein-backups:/vein-server/backups'
+      - 'vein-logs:/vein-server/logs'
+    ports:
+      - 7777:7777/udp
+      - 27015:27015/udp
+volumes:
+  vein-server:
+  vein-backups:
+  vein-logs:
