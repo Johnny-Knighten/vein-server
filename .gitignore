@@ -1,0 +1,40 @@
+# Personal docker-compose (use deployment-examples/ for reference)
+docker-compose.yml
+
+# Runtime files
+logs/
+backups/
+*.log
+
+# Docker volumes (local testing)
+volumes/
+
+# Environment and secrets
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (if using any JS tooling)
+node_modules/
+
+# Python (if using any Python tooling)
+__pycache__/
+*.pyc
+.venv/
+
+# Temporary files
+*.tmp
+*.bak

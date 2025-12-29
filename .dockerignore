@@ -1,0 +1,34 @@
+# Documentation (not needed in container)
+README.md
+CLAUDE.md
+LICENSE
+docs/
+
+# Git files (not needed in container)
+.git/
+.gitignore
+.github/
+
+# Development files
+.devcontainer/
+.vscode/
+.idea/
+
+# CI/CD files (when added)
+.github/
+
+# Runtime files (not needed at build time)
+logs/
+backups/
+volumes/
+
+# Environment files
+.env
+.env.*
+
+# Examples (not needed in production image)
+examples/
+
+# OS files
+.DS_Store
+Thumbs.db

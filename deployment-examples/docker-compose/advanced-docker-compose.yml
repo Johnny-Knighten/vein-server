@@ -1,0 +1,37 @@
+version: '3'
+services:
+  vein:
+    container_name: vein
+    image: vein-server:latest
+    restart: unless-stopped
+    environment:
+      - VEIN_SERVER_NAME="Advanced Vein Server"
+      - VEIN_SERVER_DESCRIPTION="A fully configured Vein dedicated server"
+      - VEIN_SERVER_PASSWORD=secretpassword
+      - VEIN_SERVER_PUBLIC=True
+      - VEIN_SERVER_MAX_PLAYERS=32
+      - VEIN_SERVER_PORT=7777
+      - VEIN_SERVER_QUERY_PORT=27015
+      - UPDATE_ON_BOOT=True
+      - BACKUP_ON_STOP=True
+      - BACKUP_BEFORE_UPDATE=True
+      - ZIP_BACKUPS=False
+      - RETAIN_BACKUPS=10
+      - SCHEDULED_RESTART=False
+      - RESTART_CRON=0 4 * * 0,3
+      - BACKUP_ON_SCHEDULED_RESTART=True
+      - SCHEDULED_UPDATE=False
+      - UPDATE_CRON=0 5 * * 6
+      - SCHEDULED_BACKUP=False
+      - BACKUP_CRON=0 6 * * *
+    volumes:
+      - 'vein-server:/vein-server/server'
+      - 'vein-backups:/vein-server/backups'
+      - 'vein-logs:/vein-server/logs'
+    ports:
+      - 7777:7777/udp
+      - 27015:27015/udp
+volumes:
+  vein-server:
+  vein-backups:
+  vein-logs:
