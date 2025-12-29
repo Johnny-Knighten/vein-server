@@ -13,15 +13,12 @@ tagFormat: '${version}'
 
 plugins:
   - "@semantic-release/commit-analyzer"
-  - "@semantic-release/changelog"
-  - "@semantic-release/git"
+  - "@semantic-release/release-notes-generator"
   - "@semantic-release/github"
 
 preset: 'conventionalcommits'
 
 verifyConditions:
-  - '@semantic-release/changelog'
-  - '@semantic-release/git'
   - '@semantic-release/github'
 
 analyzeCommits:
@@ -35,12 +32,6 @@ generateNotes:
       commitsSort: 'header'
     linkCompare: true
     linkReferences: true
-
-prepare:
-  - path: '@semantic-release/changelog'
-  - path: '@semantic-release/git'
-    message: 'RELEASE: ${nextRelease.version}'
-    assets: ['CHANGELOG.md']
 
 publish:
   - path: '@semantic-release/github'
