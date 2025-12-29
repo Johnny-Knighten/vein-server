@@ -1,3 +1,6 @@
+# Personal docker-compose (use deployment-examples/ for reference)
+docker-compose.yml
+
 # Runtime files
 logs/
 backups/
@@ -9,7 +12,6 @@ volumes/
 # Environment and secrets
 .env
 .env.*
-!.env.example
 *.key
 *.pem
 credentials.json
