@@ -1,16 +1,17 @@
 # test_main.py
 
 import logging
-from pathlib import Path
 import unittest
+from pathlib import Path
 from unittest import mock
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
+
 from config_from_env_vars.main import (
-    process_env_vars,
-    update_ini_files,
     backup_existing_ini_files,
     compare_and_cleanup_configs,
     get_latest_backup_file,
+    process_env_vars,
+    update_ini_files,
 )
 
 # logging.disable(logging.CRITICAL)
