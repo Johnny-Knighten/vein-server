@@ -249,7 +249,7 @@ Format: `CONFIG_<filename>_<section>_<variable>=<value>`
 
 Example:
 ```yaml
-CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs: "76561198012345678"
+CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs: "12345678901234567"
 ```
 
 ---
