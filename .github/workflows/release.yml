@@ -42,7 +42,7 @@ jobs:
         id: semantic_release
         if: ${{ !env.ACT }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN_SEMANTIC_RELEASE }}
         run: |
           OUTPUT=$(npx semantic-release)
           echo "$OUTPUT"
