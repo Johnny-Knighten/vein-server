@@ -194,9 +194,7 @@ class TestConfigFromEnvVars(unittest.TestCase):
 
     @patch("config_from_env_vars.main.os.listdir")
     @patch("config_from_env_vars.main.shutil.move")
-    def test_backup_existing_ini_files_empty_directory(
-        self, mock_move, mock_listdir
-    ):
+    def test_backup_existing_ini_files_empty_directory(self, mock_move, mock_listdir):
         mock_listdir.return_value = []
 
         backup_existing_ini_files("/fake/path")
@@ -279,9 +277,7 @@ class TestConfigFromEnvVars(unittest.TestCase):
     @patch("config_from_env_vars.main.shutil.move")
     @patch("config_from_env_vars.main.Path")
     @patch("config_from_env_vars.main.os.listdir")
-    def test_backup_existing_ini_files_error(
-        self, mock_listdir, mock_path, mock_move
-    ):
+    def test_backup_existing_ini_files_error(self, mock_listdir, mock_path, mock_move):
         mock_listdir.return_value = ["config.ini"]
         mock_path_obj = MagicMock()
         mock_path.return_value = mock_path_obj
