@@ -190,11 +190,6 @@ Tags used in this project are focused on the version of the GitHub release. It i
 
 There are also pre-release tags that are built from the `next` branch. These are used for testing and are not recommended for production use.
 
-## Shout Outs
-
-* [ark-sa-server](https://github.com/Johnny-Knighten/ark-sa-server) - Reference architecture and patterns this project is based on
-* [SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) - Server file distribution
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
