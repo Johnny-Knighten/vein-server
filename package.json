@@ -4,7 +4,7 @@
   "description": "Docker container for Vein dedicated game servers",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-repo/vein-server"
+    "url": "https://github.com/Johnny-Knighten/vein-server"
   },
   "license": "MIT",
   "dependencies": {
