@@ -38,29 +38,29 @@ generate_config_files() {
     if [[ ! -f "${SERVER_DIR}/Vein/Saved/Config/LinuxServer/Game.ini" || "$MANUAL_CONFIG" != "True" ]]; then
         echo "Vein Bootstrap - Generating configs"
 
-        # Transform simple ENV vars to CONFIG_ vars for Game.ini
-        # Pattern: export CONFIG_<filename>_<section_with_SLASH_DOT>_<variable>="${SIMPLE_VAR}"
-        # Python script converts SLASH → / and DOT → . in section names
+        # Transform simple ENV vars to CONFIG_FILE_ vars for Game.ini
+        # Format: CONFIG_FILE_<filename>_SECTION_<section>_VAR_<variable>="${SIMPLE_VAR}"
+        # Python script converts SLASH → / and DOT → . in section and variable names
 
         # [/Script/Engine.GameSession]
-        export CONFIG_Game_SLASH_Script_SLASH_Engine_DOT_GameSession_MaxPlayers="${VEIN_SERVER_MAX_PLAYERS:-16}"
+        export CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Engine_DOT_GameSession_VAR_MaxPlayers="${VEIN_SERVER_MAX_PLAYERS:-16}"
 
         # [/Script/Vein.VeinGameSession]
-        export CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_ServerName="${VEIN_SERVER_NAME:-Vein Server}"
-        export CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_ServerDescription="${VEIN_SERVER_DESCRIPTION:-A Vein dedicated server}"
-        export CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_Password="${VEIN_SERVER_PASSWORD:-}"
-        export CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_bPublic="${VEIN_SERVER_PUBLIC:-True}"
-        export CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_BindAddr="${VEIN_BIND_ADDR:-0.0.0.0}"
-        export CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_HeartbeatInterval="${VEIN_HEARTBEAT_INTERVAL:-5.0}"
+        export CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_ServerName="${VEIN_SERVER_NAME:-Vein Server}"
+        export CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_ServerDescription="${VEIN_SERVER_DESCRIPTION:-A Vein dedicated server}"
+        export CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_Password="${VEIN_SERVER_PASSWORD:-}"
+        export CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_bPublic="${VEIN_SERVER_PUBLIC:-True}"
+        export CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_BindAddr="${VEIN_BIND_ADDR:-0.0.0.0}"
+        export CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_HeartbeatInterval="${VEIN_HEARTBEAT_INTERVAL:-5.0}"
 
         # [URL]
-        export CONFIG_Game_URL_Port="${VEIN_SERVER_PORT:-7777}"
+        export CONFIG_FILE_Game_SECTION_URL_VAR_Port="${VEIN_SERVER_PORT:-7777}"
 
         # [OnlineSubsystemSteam]
-        export CONFIG_Game_OnlineSubsystemSteam_GameServerQueryPort="${VEIN_SERVER_QUERY_PORT:-27015}"
-        export CONFIG_Game_OnlineSubsystemSteam_bVACEnabled="${VEIN_VAC_ENABLED:-0}"
+        export CONFIG_FILE_Game_SECTION_OnlineSubsystemSteam_VAR_GameServerQueryPort="${VEIN_SERVER_QUERY_PORT:-27015}"
+        export CONFIG_FILE_Game_SECTION_OnlineSubsystemSteam_VAR_bVACEnabled="${VEIN_VAC_ENABLED:-0}"
 
-        # Call Python script to generate INI files from CONFIG_ vars
+        # Call Python script to generate INI files from CONFIG_FILE_ vars
         python3 /usr/local/bin/config_from_env_vars/main.py --path "${SERVER_DIR}/Vein/Saved/Config/LinuxServer"
     else
         echo "Vein Bootstrap - Skipping (MANUAL_CONFIG=True)"
