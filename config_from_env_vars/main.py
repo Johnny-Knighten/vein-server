@@ -35,47 +35,61 @@ def process_env_vars() -> Dict[str, Dict[str, Dict[str, str]]]:
             continue
 
         # Remove CONFIG_FILE_ prefix
-        remainder = key[len("CONFIG_FILE_"):]
+        remainder = key[len("CONFIG_FILE_") :]
 
         # Find _SECTION_ delimiter
         section_marker = "_SECTION_"
         section_idx = remainder.find(section_marker)
         if section_idx == -1:
-            logging.warning(f"Invalid config environment variable (missing _SECTION_): {key}")
+            logging.warning(
+                f"Invalid config environment variable (missing _SECTION_): {key}"
+            )
             continue
 
         file_name = remainder[:section_idx]
-        remainder = remainder[section_idx + len(section_marker):]
+        remainder = remainder[section_idx + len(section_marker) :]
 
         # Find _VAR_ delimiter
         var_marker = "_VAR_"
         var_idx = remainder.find(var_marker)
         if var_idx == -1:
-            logging.warning(f"Invalid config environment variable (missing _VAR_): {key}")
+            logging.warning(
+                f"Invalid config environment variable (missing _VAR_): {key}"
+            )
             continue
 
         section_name = remainder[:var_idx]
-        var_name = remainder[var_idx + len(var_marker):]
+        var_name = remainder[var_idx + len(var_marker) :]
 
         # Apply SLASH and DOT replacements to section name
         section_name = section_name.replace("SLASH", "/").replace("DOT", ".")
         section_name = (
-            section_name.replace("_/_", "/").replace("/_", "/").replace("_/", "/")
-            .replace("_._", ".").replace("_.", ".").replace("._", ".")
+            section_name.replace("_/_", "/")
+            .replace("/_", "/")
+            .replace("_/", "/")
+            .replace("_._", ".")
+            .replace("_.", ".")
+            .replace("._", ".")
         )
 
         # Apply SLASH and DOT replacements to variable name
         var_name = var_name.replace("SLASH", "/").replace("DOT", ".")
         var_name = (
-            var_name.replace("_/_", "/").replace("/_", "/").replace("_/", "/")
-            .replace("_._", ".").replace("_.", ".").replace("._", ".")
+            var_name.replace("_/_", "/")
+            .replace("/_", "/")
+            .replace("_/", "/")
+            .replace("_._", ".")
+            .replace("_.", ".")
+            .replace("._", ".")
         )
 
         # Convert trailing numbers to array syntax
         var_name = re.sub(r"(\d+)$", r"[\1]", var_name)
 
         if not file_name or not section_name or not var_name:
-            logging.warning(f"Invalid config environment variable (empty component): {key}")
+            logging.warning(
+                f"Invalid config environment variable (empty component): {key}"
+            )
             continue
 
         if file_name not in config_files:

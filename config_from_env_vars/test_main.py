@@ -29,7 +29,9 @@ class TestConfigFromEnvVars(unittest.TestCase):
 
     @patch.dict(
         "os.environ",
-        {"CONFIG_FILE_GameUserSettings_SECTION_ServerSettings_VAR_DifficultyOffset": "0.25"},
+        {
+            "CONFIG_FILE_GameUserSettings_SECTION_ServerSettings_VAR_DifficultyOffset": "0.25"
+        },
     )
     def test_process_env_vars_simple(self):
         result = process_env_vars()
@@ -88,7 +90,9 @@ class TestConfigFromEnvVars(unittest.TestCase):
 
     @patch.dict(
         "os.environ",
-        {"CONFIG_FILE_GameUserSettings_SECTION_Server_DOT_Settings_VAR_DifficultyOffset": "0.25"},
+        {
+            "CONFIG_FILE_GameUserSettings_SECTION_Server_DOT_Settings_VAR_DifficultyOffset": "0.25"
+        },
     )
     def test_process_env_vars_with_dot_in_section(self):
         result = process_env_vars()
@@ -99,7 +103,9 @@ class TestConfigFromEnvVars(unittest.TestCase):
 
     @patch.dict(
         "os.environ",
-        {"CONFIG_FILE_GameUserSettings_SECTION_Server_SLASH_Settings_VAR_DifficultyOffset": "0.25"},
+        {
+            "CONFIG_FILE_GameUserSettings_SECTION_Server_SLASH_Settings_VAR_DifficultyOffset": "0.25"
+        },
     )
     def test_process_env_vars_with_slash_in_section(self):
         result = process_env_vars()
@@ -110,7 +116,9 @@ class TestConfigFromEnvVars(unittest.TestCase):
 
     @patch.dict(
         "os.environ",
-        {"CONFIG_FILE_Game_SECTION_ServerSettings_VAR_PlayerBaseStatsMultipliers7": "6.0"},
+        {
+            "CONFIG_FILE_Game_SECTION_ServerSettings_VAR_PlayerBaseStatsMultipliers7": "6.0"
+        },
     )
     def test_process_env_vars_with_number_in_varname(self):
         result = process_env_vars()
@@ -132,7 +140,9 @@ class TestConfigFromEnvVars(unittest.TestCase):
 
     @patch.dict(
         "os.environ",
-        {"CONFIG_FILE_Game_SECTION_ConsoleVariables_VAR_vein_DOT_AISpawner_DOT_Enabled": "True"},
+        {
+            "CONFIG_FILE_Game_SECTION_ConsoleVariables_VAR_vein_DOT_AISpawner_DOT_Enabled": "True"
+        },
     )
     def test_process_env_vars_with_multiple_dots_in_varname(self):
         result = process_env_vars()
@@ -141,12 +151,16 @@ class TestConfigFromEnvVars(unittest.TestCase):
             {"Game": {"ConsoleVariables": {"vein.AISpawner.Enabled": "True"}}},
         )
 
-    @patch.dict("os.environ", {"CONFIG_FILE_GameUserSettings_VAR_DifficultyOffset": "0.25"})
+    @patch.dict(
+        "os.environ", {"CONFIG_FILE_GameUserSettings_VAR_DifficultyOffset": "0.25"}
+    )
     def test_process_env_vars_with_missing_section(self):
         result = process_env_vars()
         self.assertEqual(result, {})
 
-    @patch.dict("os.environ", {"CONFIG_FILE_GameUserSettings_SECTION_ServerSettings": "0.25"})
+    @patch.dict(
+        "os.environ", {"CONFIG_FILE_GameUserSettings_SECTION_ServerSettings": "0.25"}
+    )
     def test_process_env_vars_with_missing_var(self):
         result = process_env_vars()
         self.assertEqual(result, {})
