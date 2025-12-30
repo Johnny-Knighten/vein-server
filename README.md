@@ -169,8 +169,8 @@ For settings not covered by simple environment variables, use `CONFIG_` variable
 # Format: CONFIG_<filename>_<section>_<variable>=<value>
 # Use SLASH for / and DOT for . in section names
 
-CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs: "76561198012345678"
-CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_SuperAdminSteamIDs: "76561198012345678"
+CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs: "12345678901234567"
+CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_SuperAdminSteamIDs: "98765432109876543"
 ```
 
 ## Deployment
