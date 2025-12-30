@@ -94,6 +94,7 @@ The table below shows all the available environment variables and their default 
 | `UPDATE_CRON` | Cron expression for scheduled updates. Default is every Sunday at 5am. | `0 5 * * 0` |
 | `BACKUP_BEFORE_UPDATE` | Determines if the server should backup itself before updating. | `True` |
 | `UPDATE_ON_BOOT` | Determines if the server should update itself when it starts. If this is set to `False` then the server will only update if `SCHEDULED_UPDATE=True`, then it will update on the schedule specified by `UPDATE_CRON`. | `True` |
+| `EXPERIMENTAL_BUILD` | If set to `True`, downloads the experimental beta build instead of the stable release. Uses a different Steam App ID and beta branch. | `False` |
 | `SCHEDULED_BACKUP` | Enable scheduled backups of the server. | `False` |
 | `BACKUP_CRON` | Cron expression for scheduled backups. Default is every day at 6am. | `0 6 * * *` |
 | `BACKUP_ON_STOP` | Determines if the server should backup itself when the container stops. | `True` |
