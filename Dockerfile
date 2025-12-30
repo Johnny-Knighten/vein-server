@@ -75,7 +75,8 @@ ENV SERVER_DIR="/vein-server/server" \
     RESTART_CRON="0 4 * * *" \
     SCHEDULED_UPDATE="False" \
     UPDATE_CRON="0 3 * * *" \
-    MANUAL_CONFIG="False"
+    MANUAL_CONFIG="False" \
+    EXPERIMENTAL_BUILD="False"
 
 EXPOSE 7777/udp 27015/udp 8080/tcp
 
