@@ -162,16 +162,48 @@ This container has two primary ways to manage config files:
 
 You should not mix and match these methods. If you wish to manage the config files manually, you must set `MANUAL_CONFIG=True` to prevent the container from generating/overwriting any config files.
 
-#### Advanced Configuration via CONFIG_ Variables
+#### Advanced Configuration via CONFIG_FILE_ Variables
 
-For settings not covered by simple environment variables, use `CONFIG_` variables to directly control Game.ini:
+For settings not covered by simple environment variables, use `CONFIG_FILE_` variables to directly control Game.ini:
+
+**Format:** `CONFIG_FILE_<filename>_SECTION_<section>_VAR_<variable>=<value>`
+
+**Delimiters:**
+- `_SECTION_` separates filename from section name
+- `_VAR_` separates section name from variable name
+
+**Special character replacements (for section and variable names):**
+- Use `SLASH` for `/`
+- Use `DOT` for `.`
+
+**Examples:**
 
 ```yaml
-# Format: CONFIG_<filename>_<section>_<variable>=<value>
-# Use SLASH for / and DOT for . in section names
+# Console variables (use DOT for . in variable names)
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP: "True"
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_AISpawner_DOT_Enabled: "True"
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_TimeMultiplier: "16"
 
-CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs: "12345678901234567"
-CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_SuperAdminSteamIDs: "98765432109876543"
+# Admin configuration (use SLASH and DOT in section names)
+CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_AdminSteamIDs: "12345678901234567"
+CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_SuperAdminSteamIDs: "98765432109876543"
+```
+
+This produces the following:
+
+`Engine.ini`:
+```ini
+[ConsoleVariables]
+vein.PvP=True
+vein.AISpawner.Enabled=True
+vein.TimeMultiplier=16
+```
+
+`Game.ini`:
+```ini
+[/Script/Vein.VeinGameSession]
+AdminSteamIDs=12345678901234567
+SuperAdminSteamIDs=98765432109876543
 ```
 
 ## Deployment
