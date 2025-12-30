@@ -5,6 +5,7 @@ services:
     image: vein-server:latest
     restart: unless-stopped
     environment:
+      # Server identity
       - VEIN_SERVER_NAME="Advanced Vein Server"
       - VEIN_SERVER_DESCRIPTION="A fully configured Vein dedicated server"
       - VEIN_SERVER_PASSWORD=secretpassword
@@ -12,11 +13,14 @@ services:
       - VEIN_SERVER_MAX_PLAYERS=32
       - VEIN_SERVER_PORT=7777
       - VEIN_SERVER_QUERY_PORT=27015
+      # Update settings
       - UPDATE_ON_BOOT=True
+      # Backup settings
       - BACKUP_ON_STOP=True
       - BACKUP_BEFORE_UPDATE=True
       - ZIP_BACKUPS=False
       - RETAIN_BACKUPS=10
+      # Scheduled operations (disabled by default)
       - SCHEDULED_RESTART=False
       - RESTART_CRON=0 4 * * 0,3
       - BACKUP_ON_SCHEDULED_RESTART=True
@@ -24,6 +28,15 @@ services:
       - UPDATE_CRON=0 5 * * 6
       - SCHEDULED_BACKUP=False
       - BACKUP_CRON=0 6 * * *
+      # Advanced Game.ini configuration via CONFIG_FILE_ variables
+      # Format: CONFIG_FILE_<filename>_SECTION_<section>_VAR_<variable>=<value>
+      # Use SLASH for / and DOT for . in section and variable names
+      # Console variables
+      - CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP=False
+      - CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_AISpawner_DOT_Enabled=True
+      - CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_TimeMultiplier=16
+      # Admin settings
+      - CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_AdminSteamIDs=12345678901234567
     volumes:
       - 'vein-server:/vein-server/server'
       - 'vein-backups:/vein-server/backups'

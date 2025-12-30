@@ -7,7 +7,7 @@ Docker containerization solution for running Vein dedicated game servers, based 
 **Key Features:**
 - Supervisord-based finite state machine for process orchestration
 - Native Linux server (no Wine/Proton required)
-- Environment variable configuration with CONFIG_ support for INI files
+- Environment variable configuration with CONFIG_FILE_ support for INI files
 - Automated updates, backups, and scheduled operations
 
 ---
@@ -198,9 +198,9 @@ vein-server/
 - Variants: standalone, with-restart, with-update
 
 ### config_from_env_vars/main.py
-- Parse CONFIG_ environment variables
+- Parse CONFIG_FILE_ environment variables
 - Generate INI files
-- Handle SLASH (/) and DOT (.) replacements
+- Format: `CONFIG_FILE_<filename>_SECTION_<section>_VAR_<variable>=<value>`
 
 ---
 
@@ -241,15 +241,31 @@ vein-server/
 | `SCHEDULED_UPDATE` | False | Enable updates |
 | `UPDATE_CRON` | "0 3 * * *" | Update schedule |
 
-### Advanced Configuration (CONFIG_ Variables)
+### Advanced Configuration (CONFIG_FILE_ Variables)
 
-Format: `CONFIG_<filename>_<section>_<variable>=<value>`
+Format: `CONFIG_FILE_<filename>_SECTION_<section>_VAR_<variable>=<value>`
+
+**Delimiters:**
+- `_SECTION_` separates filename from section name
+- `_VAR_` separates section name from variable name
+
+**Special character replacements (for section and variable names):**
 - Use `SLASH` for `/`
 - Use `DOT` for `.`
 
-Example:
+**Examples:**
 ```yaml
-CONFIG_Game_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_AdminSteamIDs: "76561198012345678"
+# Console variable with dots in name (use DOT for .)
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP: "True"
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_AISpawner_DOT_Enabled: "True"
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_TimeMultiplier: "16"
+
+# Section with slashes and dots
+CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_AdminSteamIDs: "12345678901234567"
+
+# Array-style variable (trailing number becomes [N])
+CONFIG_FILE_Game_SECTION_ServerSettings_VAR_PlayerBaseStatsMultipliers7: "6.0"
+# Results in: PlayerBaseStatsMultipliers[7]=6.0
 ```
 
 ---
