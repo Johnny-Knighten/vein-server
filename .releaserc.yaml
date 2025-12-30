@@ -12,26 +12,14 @@ dryRun: false
 tagFormat: '${version}'
 
 plugins:
-  - "@semantic-release/commit-analyzer"
-  - "@semantic-release/release-notes-generator"
+  - - "@semantic-release/commit-analyzer"
+    - preset: 'conventionalcommits'
+  - - "@semantic-release/release-notes-generator"
+    - preset: 'conventionalcommits'
+      writerOpts:
+        groupBy: 'type'
+        commitGroupsSort: 'title'
+        commitsSort: 'header'
+      linkCompare: true
+      linkReferences: true
   - "@semantic-release/github"
-
-preset: 'conventionalcommits'
-
-verifyConditions:
-  - '@semantic-release/github'
-
-analyzeCommits:
-  - path: '@semantic-release/commit-analyzer'
-
-generateNotes:
-  - path: '@semantic-release/release-notes-generator'
-    writerOpts:
-      groupBy: 'type'
-      commitGroupsSort: 'title'
-      commitsSort: 'header'
-    linkCompare: true
-    linkReferences: true
-
-publish:
-  - path: '@semantic-release/github'
