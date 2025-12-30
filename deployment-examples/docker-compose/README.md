@@ -26,7 +26,7 @@ docker-compose -f basic-docker-compose.yml up -d
 - Complete server identity configuration
 - Backup settings with retention policy
 - Scheduled restarts, updates, and backups (disabled by default)
-- Advanced CONFIG_ variable examples
+- Advanced `CONFIG_FILE_` variable examples for Game.ini settings
 
 **Usage:**
 ```bash
