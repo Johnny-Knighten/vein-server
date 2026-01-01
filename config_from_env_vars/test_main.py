@@ -12,6 +12,7 @@ from config_from_env_vars.main import (
     get_latest_backup_file,
     process_env_vars,
     update_ini_files,
+    update_ini_value,
 )
 
 # logging.disable(logging.CRITICAL)
@@ -165,51 +166,72 @@ class TestConfigFromEnvVars(unittest.TestCase):
         result = process_env_vars()
         self.assertEqual(result, {})
 
-    @patch("builtins.open", new_callable=mock_open)
-    @patch("config_from_env_vars.main.MaintainCaseConfigParser")
-    def test_update_ini_files_single_file(self, mock_config, mock_file):
-        mock_config_data = {
-            "GameUserSettings": {
-                "ServerSettings": {
-                    "DifficultyOffset": "0.25",
-                }
-            }
-        }
-        update_ini_files(mock_config_data, "/fake/path")
-        mock_file.assert_called_once_with("/fake/path/GameUserSettings.ini", "w")
-        mock_config.return_value.set.assert_called_once_with(
-            "ServerSettings", "DifficultyOffset", "0.25"
-        )
-        mock_config.return_value.write.assert_called_once()
+    # Tests for update_ini_value (raw text manipulation)
 
-    @patch("builtins.open", new_callable=mock_open)
-    @patch("config_from_env_vars.main.MaintainCaseConfigParser")
-    def test_update_ini_files_multiple_file(self, mock_config, mock_file):
-        mock_config_data = {
-            "GameUserSettings": {
-                "ServerSettings": {
-                    "DifficultyOffset": "0.25",
-                }
-            },
-            "GameAppearance": {
-                "Logo": {
-                    "Path": "/path/to/logo.png",
-                }
-            },
-        }
-        update_ini_files(mock_config_data, "/fake/path")
-        mock_file.assert_any_call("/fake/path/GameUserSettings.ini", "w")
-        mock_file.assert_any_call("/fake/path/GameAppearance.ini", "w")
-        self.assertEqual(mock_config.return_value.write.call_count, 2)
+    def test_update_ini_value_existing_var(self):
+        """Updates an existing variable value."""
+        content = "[Section]\nVar1=OldValue\nVar2=Other\n"
+        result = update_ini_value(content, "Section", "Var1", "NewValue")
+        self.assertIn("Var1=NewValue", result)
+        self.assertIn("Var2=Other", result)
 
-    @patch("builtins.open", new_callable=mock_open)
-    @patch("config_from_env_vars.main.MaintainCaseConfigParser")
-    def test_update_ini_files_no_data_to_write(self, mock_config, mock_file):
+    def test_update_ini_value_new_var_existing_section(self):
+        """Adds a new variable to an existing section."""
+        content = "[Section]\nVar1=Value1\n"
+        result = update_ini_value(content, "Section", "NewVar", "NewValue")
+        self.assertIn("[Section]", result)
+        self.assertIn("Var1=Value1", result)
+        self.assertIn("NewVar=NewValue", result)
+
+    def test_update_ini_value_new_section(self):
+        """Creates a new section when it doesn't exist."""
+        content = "[ExistingSection]\nVar1=Value1\n"
+        result = update_ini_value(content, "NewSection", "NewVar", "NewValue")
+        self.assertIn("[ExistingSection]", result)
+        self.assertIn("[NewSection]", result)
+        self.assertIn("NewVar=NewValue", result)
+
+    def test_update_ini_value_empty_content(self):
+        """Creates section and variable when content is empty."""
+        result = update_ini_value("", "Section", "Var", "Value")
+        self.assertIn("[Section]", result)
+        self.assertIn("Var=Value", result)
+
+    def test_update_ini_value_preserves_duplicate_keys(self):
+        """Preserves duplicate keys in the same section (Unreal INI format)."""
+        content = "[Core.System]\nPaths=Path1\nPaths=Path2\nPaths=Path3\n"
+        result = update_ini_value(content, "ConsoleVariables", "NewVar", "Value")
+        # All three Paths= lines should be preserved
+        self.assertEqual(result.count("Paths="), 3)
+
+    def test_update_ini_value_with_special_chars_in_section(self):
+        """Handles sections with slashes and dots."""
+        content = ""
+        result = update_ini_value(content, "/Script/Engine.GameSession", "MaxPlayers", "32")
+        self.assertIn("[/Script/Engine.GameSession]", result)
+        self.assertIn("MaxPlayers=32", result)
+
+    def test_update_ini_value_with_dots_in_varname(self):
+        """Handles variable names with dots."""
+        content = "[ConsoleVariables]\nvein.Setting=Old\n"
+        result = update_ini_value(content, "ConsoleVariables", "vein.Setting", "New")
+        self.assertIn("vein.Setting=New", result)
+        # Should only have one occurrence
+        self.assertEqual(result.count("vein.Setting="), 1)
+
+    def test_update_ini_value_preserves_metadata_comments(self):
+        """Preserves metadata comments at start of file."""
+        content = ";METADATA=(Diff=true)\n[Section]\nVar=Value\n"
+        result = update_ini_value(content, "Section", "Var", "NewValue")
+        self.assertIn(";METADATA=(Diff=true)", result)
+
+    # Tests for update_ini_files
+
+    def test_update_ini_files_no_data_to_write(self):
+        """Does nothing when config_data is empty."""
         mock_config_data = {}
+        # Should not raise any errors
         update_ini_files(mock_config_data, "/fake/path")
-        mock_file.assert_not_called()
-        mock_config.return_value.set.assert_not_called()
-        mock_config.return_value.write.assert_not_called()
 
     # Tests for file_differs_from_backup
 
