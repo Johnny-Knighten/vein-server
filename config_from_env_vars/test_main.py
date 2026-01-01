@@ -207,7 +207,9 @@ class TestConfigFromEnvVars(unittest.TestCase):
     def test_update_ini_value_with_special_chars_in_section(self):
         """Handles sections with slashes and dots."""
         content = ""
-        result = update_ini_value(content, "/Script/Engine.GameSession", "MaxPlayers", "32")
+        result = update_ini_value(
+            content, "/Script/Engine.GameSession", "MaxPlayers", "32"
+        )
         self.assertIn("[/Script/Engine.GameSession]", result)
         self.assertIn("MaxPlayers=32", result)
 
@@ -402,6 +404,7 @@ class TestConfigFromEnvVars(unittest.TestCase):
         latest_backup = get_latest_backup_file(f"{directory}/{base_file_name}")
 
         self.assertEqual(latest_backup, f"{directory}/{base_file_name}.backup")
+
 
 if __name__ == "__main__":
     unittest.main()
