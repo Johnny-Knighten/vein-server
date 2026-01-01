@@ -24,6 +24,8 @@ Based on the architecture patterns from [ark-sa-server](https://github.com/Johnn
   * [Volumes](#volumes)
   * [Backups](#backups)
   * [Config Files](#config-files)
+    * [Advanced Configuration via CONFIG_FILE_ Variables](#advanced-configuration-via-config_file_-variables)
+    * [Config File Behavior](#config-file-behavior)
 * [Deployment](#deployment)
 * [Tags](#tags)
 * [Shout Outs](#shout-outs)
@@ -204,6 +206,49 @@ vein.TimeMultiplier=16
 [/Script/Vein.VeinGameSession]
 AdminSteamIDs=12345678901234567
 SuperAdminSteamIDs=98765432109876543
+```
+
+#### Config File Behavior
+
+The container uses a smart merge system for configuration files that preserves your changes while applying environment variable settings:
+
+**How it works:**
+- On each startup, the container reads the existing config file (if present)
+- Only the specific settings controlled by environment variables are updated
+- All other content is preserved, including:
+  - In-game configuration changes
+  - Server auto-generated content (paths, metadata, etc.)
+  - Settings not controlled by environment variables
+
+**Backups:**
+- A backup is created only when the config file has changed since the last backup
+- Backups are stored as `.backup`, `.backup1`, `.backup2`, etc. in the config directory
+- This prevents unnecessary backup accumulation on repeated restarts
+
+**Important behaviors to understand:**
+
+1. **Environment variables always win:** If you set a value via environment variable and also change it in-game, the environment variable value will be applied on each container restart.
+
+2. **Removed environment variables persist:** If you set a config value via environment variable, then later remove that environment variable, the value will remain in the config file. The container only adds or updates values - it never removes them. To reset a value, you must either:
+   - Set the environment variable to the desired new value
+   - Manually edit the config file (with `MANUAL_CONFIG=True`)
+   - Delete the config file to start fresh
+
+3. **In-game changes are preserved:** Any settings you change in-game that are NOT controlled by environment variables will persist across restarts.
+
+**Example scenario:**
+```bash
+# Day 1: Set PvP mode via env var
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP="True"
+# Result: Engine.ini contains vein.PvP=True
+
+# Day 2: Remove the env var from your docker-compose
+# Result: Engine.ini still contains vein.PvP=True (the value persists)
+
+# Day 3: Want to disable PvP? Two options:
+# Option A: Set the env var to the new value
+CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP="False"
+# Option B: Edit the file in game or manually.
 ```
 
 ## Deployment
