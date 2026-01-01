@@ -8,7 +8,7 @@ from pathlib import Path
 import shutil
 import sys
 import re
-from typing import Dict
+from typing import Dict, List
 
 # Configure logging
 logging.basicConfig(
@@ -131,14 +131,30 @@ def update_ini_files(
             continue
 
 
-def backup_existing_ini_files(path: str) -> None:
-    for file_name in os.listdir(path):
-        if not file_name.endswith(".ini"):
+def file_differs_from_backup(file_path: str) -> bool:
+    """
+    Return True if file differs from latest backup (or no backup exists).
+    Uses get_latest_backup_file() to find the backup.
+    """
+    latest_backup = get_latest_backup_file(file_path)
+    if not latest_backup or not Path(latest_backup).exists():
+        return True  # No backup = treat as changed
+    return not filecmp.cmp(file_path, latest_backup, shallow=False)
+
+
+def backup_changed_ini_files(files_to_process: List[str], path: str) -> None:
+    """Backup INI files only if they differ from their latest backup."""
+    for file_name in files_to_process:
+        file_path = os.path.join(path, file_name)
+        if not Path(file_path).exists():
+            continue  # No file to backup
+
+        if not file_differs_from_backup(file_path):
+            logging.info(f"File unchanged from backup, skipping: {file_path}")
             continue
 
-        file_path = os.path.join(path, file_name)
+        # File differs from backup (or no backup exists) - create new backup
         backup_path = os.path.join(path, f"{file_name}.backup")
-
         counter = 1
         while Path(backup_path).exists():
             backup_path = os.path.join(path, f"{file_name}.backup{counter}")
@@ -146,7 +162,7 @@ def backup_existing_ini_files(path: str) -> None:
 
         try:
             logging.info(f"Creating backup of {file_path} to {backup_path}")
-            shutil.move(file_path, backup_path)
+            shutil.copy2(file_path, backup_path)  # COPY not MOVE - preserves original
         except Exception as e:
             logging.error(f"Error creating backup of {file_name}: {e}")
             continue
@@ -159,25 +175,6 @@ def get_latest_backup_file(base_file_path: str):
         Path(directory).glob(f"{base_file_name}.backup*"), reverse=True
     )
     return str(backup_files[0]) if backup_files else ""
-
-
-def compare_and_cleanup_configs(path: str):
-    for file in Path(path).glob("*.ini"):
-        latest_backup = get_latest_backup_file(str(file))
-
-        if not latest_backup:
-            logging.info(f"No backups exist for: {file}")
-            continue
-
-        if Path(latest_backup).exists() and filecmp.cmp(
-            file, latest_backup, shallow=False
-        ):
-            os.remove(latest_backup)
-            logging.info(f"New config matches old, backup removed: {latest_backup}")
-        else:
-            logging.info(
-                f"Configuration changed, latest backup retained: {latest_backup}"
-            )
 
 
 def main():
@@ -199,10 +196,18 @@ def main():
         )
         sys.exit(1)
 
-    backup_existing_ini_files(args.config_directory)
+    # 1. Parse env vars to determine which files we'll touch
     config_data = process_env_vars()
+    if not config_data:
+        logging.info("No CONFIG_FILE_ environment variables found. Nothing to do.")
+        return
+
+    # 2. Backup files that changed since last backup (copy, not move)
+    files_to_process = [f"{name}.ini" for name in config_data.keys()]
+    backup_changed_ini_files(files_to_process, args.config_directory)
+
+    # 3. Update INI files in-place (preserves existing content)
     update_ini_files(config_data, args.config_directory)
-    compare_and_cleanup_configs(args.config_directory)
 
 
 if __name__ == "__main__":
