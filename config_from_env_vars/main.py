@@ -3,22 +3,16 @@ import filecmp
 import os
 import logging
 from argparse import ArgumentParser
-from configparser import RawConfigParser
 from pathlib import Path
 import shutil
 import sys
 import re
-from typing import Dict
+from typing import Dict, List
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-
-class MaintainCaseConfigParser(RawConfigParser):
-    def optionxform(self, optionstr):
-        return optionstr
 
 
 def process_env_vars() -> Dict[str, Dict[str, Dict[str, str]]]:
@@ -105,40 +99,126 @@ def process_env_vars() -> Dict[str, Dict[str, Dict[str, str]]]:
 def update_ini_files(
     config_data: Dict[str, Dict[str, Dict[str, str]]], path: str
 ) -> None:
+    """
+    Update INI files using raw text manipulation to preserve duplicate keys
+    and all existing content. Only modifies specific key=value pairs.
+    """
     for file_name, sections in config_data.items():
-        config_parser = MaintainCaseConfigParser(strict=False)
         file_path = os.path.join(path, f"{file_name}.ini")
 
         try:
-            if not Path(file_path).exists():
+            # Read existing content or start with empty
+            if Path(file_path).exists():
+                with open(file_path, "r") as f:
+                    content = f.read()
+            else:
                 logging.warning(
                     f"File not found: {file_path}. A new file will be created."
                 )
-            config_parser.read(file_path)
+                content = ""
 
+            # Process each section and variable
             for section, vars in sections.items():
-                if not config_parser.has_section(section):
-                    config_parser.add_section(section)
                 for var, value in vars.items():
-                    config_parser.set(section, var, value)
-                    logging.info(f"Saving {section} {var}={value} to {file_path}")
+                    content = update_ini_value(content, section, var, value)
+                    logging.info(f"Saving [{section}] {var}={value} to {file_path}")
 
-            with open(file_path, "w") as config_file:
-                config_parser.write(config_file, space_around_delimiters=False)
+            # Write the updated content
+            with open(file_path, "w") as f:
+                f.write(content)
 
         except Exception as e:
             logging.error(f"Error updating file {file_name}.ini: {e}")
             continue
 
 
-def backup_existing_ini_files(path: str) -> None:
-    for file_name in os.listdir(path):
-        if not file_name.endswith(".ini"):
+def update_ini_value(content: str, section: str, var: str, value: str) -> str:
+    """
+    Update a single key=value in INI content using text manipulation.
+    Preserves all other content including duplicate keys.
+
+    - If section exists and key exists: update the value
+    - If section exists but key doesn't: add key at end of section
+    - If section doesn't exist: add section and key at end of file
+    """
+    lines = content.split("\n")
+    section_header = f"[{section}]"
+
+    # Find the section
+    section_start = -1
+    section_end = len(lines)
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == section_header:
+            section_start = i
+        elif section_start >= 0 and stripped.startswith("[") and stripped.endswith("]"):
+            # Found next section, mark end of our section
+            section_end = i
+            break
+
+    if section_start == -1:
+        # Section doesn't exist - add it at the end
+        if content and not content.endswith("\n"):
+            content += "\n"
+        if content and not content.endswith("\n\n"):
+            content += "\n"
+        content += f"{section_header}\n{var}={value}\n"
+        return content
+
+    # Section exists - look for the variable within the section
+    section_lines = lines[section_start:section_end]
+
+    # Check if variable exists in this section
+    var_found = False
+    for i, line in enumerate(section_lines):
+        # Skip the section header itself
+        if i == 0:
+            continue
+        stripped = line.strip()
+        # Check if this line is our variable (handle both with and without spaces)
+        if stripped.startswith(f"{var}=") or stripped.startswith(f"{var} ="):
+            # Replace this line
+            # Preserve leading whitespace
+            leading_ws = line[: len(line) - len(line.lstrip())]
+            lines[section_start + i] = f"{leading_ws}{var}={value}"
+            var_found = True
+            break
+
+    if not var_found:
+        # Variable doesn't exist in section - add it at the end of the section
+        # Find a good place to insert (before the next section or end of content)
+        insert_pos = section_end
+        # Insert the new variable
+        lines.insert(insert_pos, f"{var}={value}")
+
+    return "\n".join(lines)
+
+
+def file_differs_from_backup(file_path: str) -> bool:
+    """
+    Return True if file differs from latest backup (or no backup exists).
+    Uses get_latest_backup_file() to find the backup.
+    """
+    latest_backup = get_latest_backup_file(file_path)
+    if not latest_backup or not Path(latest_backup).exists():
+        return True  # No backup = treat as changed
+    return not filecmp.cmp(file_path, latest_backup, shallow=False)
+
+
+def backup_changed_ini_files(files_to_process: List[str], path: str) -> None:
+    """Backup INI files only if they differ from their latest backup."""
+    for file_name in files_to_process:
+        file_path = os.path.join(path, file_name)
+        if not Path(file_path).exists():
+            continue  # No file to backup
+
+        if not file_differs_from_backup(file_path):
+            logging.info(f"File unchanged from backup, skipping: {file_path}")
             continue
 
-        file_path = os.path.join(path, file_name)
+        # File differs from backup (or no backup exists) - create new backup
         backup_path = os.path.join(path, f"{file_name}.backup")
-
         counter = 1
         while Path(backup_path).exists():
             backup_path = os.path.join(path, f"{file_name}.backup{counter}")
@@ -146,7 +226,7 @@ def backup_existing_ini_files(path: str) -> None:
 
         try:
             logging.info(f"Creating backup of {file_path} to {backup_path}")
-            shutil.move(file_path, backup_path)
+            shutil.copy2(file_path, backup_path)  # COPY not MOVE - preserves original
         except Exception as e:
             logging.error(f"Error creating backup of {file_name}: {e}")
             continue
@@ -159,25 +239,6 @@ def get_latest_backup_file(base_file_path: str):
         Path(directory).glob(f"{base_file_name}.backup*"), reverse=True
     )
     return str(backup_files[0]) if backup_files else ""
-
-
-def compare_and_cleanup_configs(path: str):
-    for file in Path(path).glob("*.ini"):
-        latest_backup = get_latest_backup_file(str(file))
-
-        if not latest_backup:
-            logging.info(f"No backups exist for: {file}")
-            continue
-
-        if Path(latest_backup).exists() and filecmp.cmp(
-            file, latest_backup, shallow=False
-        ):
-            os.remove(latest_backup)
-            logging.info(f"New config matches old, backup removed: {latest_backup}")
-        else:
-            logging.info(
-                f"Configuration changed, latest backup retained: {latest_backup}"
-            )
 
 
 def main():
@@ -199,10 +260,18 @@ def main():
         )
         sys.exit(1)
 
-    backup_existing_ini_files(args.config_directory)
+    # 1. Parse env vars to determine which files we'll touch
     config_data = process_env_vars()
+    if not config_data:
+        logging.info("No CONFIG_FILE_ environment variables found. Nothing to do.")
+        return
+
+    # 2. Backup files that changed since last backup (copy, not move)
+    files_to_process = [f"{name}.ini" for name in config_data.keys()]
+    backup_changed_ini_files(files_to_process, args.config_directory)
+
+    # 3. Update INI files in-place (preserves existing content)
     update_ini_files(config_data, args.config_directory)
-    compare_and_cleanup_configs(args.config_directory)
 
 
 if __name__ == "__main__":
