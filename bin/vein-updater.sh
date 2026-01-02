@@ -13,11 +13,7 @@ main() {
 
 launch_vein_server() {
     echo "Updater - Launching Vein Server"
-    if [[ "$DRY_RUN" = "True" ]]; then
-        echo "DRY_RUN - supervisorctl start vein-server"
-    else
-        supervisorctl start vein-server
-    fi
+    supervisorctl start vein-server
 }
 
 download_and_update_vein_server() {
@@ -40,11 +36,7 @@ download_and_update_vein_server() {
 
     local install_dir="+force_install_dir $SERVER_DIR"
 
-    if [[ "$DRY_RUN" = "True" ]]; then
-        echo "DRY_RUN - steamcmd \"$install_dir\" +login anonymous \"$app_update\" +quit"
-    else
-        steamcmd "$install_dir" +login anonymous "$app_update" +quit
-    fi
+    steamcmd "$install_dir" +login anonymous "$app_update" +quit
 }
 
 main
