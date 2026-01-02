@@ -24,13 +24,9 @@ cleanup() {
 
 main() {
   setup_cron_jobs
-  if [[ "$DRY_RUN" = "True" ]]; then
-    echo "DRY_RUN - exec /usr/bin/supervisord -c /vein-server/supervisord/supervisord.conf"
-  else
-    trap 'cleanup' SIGTERM
-    /usr/bin/supervisord -c /vein-server/supervisord/supervisord.conf &
-    wait $!
-  fi
+  trap 'cleanup' SIGTERM
+  /usr/bin/supervisord -c /vein-server/supervisord/supervisord.conf &
+  wait $!
 }
 
 setup_cron_jobs() {

@@ -27,12 +27,8 @@ start_server() {
 
     echo "Vein Server - Launching server process"
 
-    if [[ "$DRY_RUN" = "True" ]]; then
-        echo "DRY_RUN - ./VeinServer.sh -log"
-    else
-        # Run server in foreground - output goes directly to stdout/stderr
-        exec ./VeinServer.sh -log
-    fi
+    # Run server in foreground - output goes directly to stdout/stderr
+    exec ./VeinServer.sh -log
 }
 
 start_server

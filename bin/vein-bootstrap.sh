@@ -15,20 +15,12 @@ main() {
 
 launch_vein_server() {
     echo "Vein Bootstrap - Launching Vein Server"
-    if [[ "$DRY_RUN" = "True" ]]; then
-        echo "DRY_RUN - supervisorctl start vein-server"
-    else
-        supervisorctl start vein-server
-    fi
+    supervisorctl start vein-server
 }
 
 launch_update_service() {
     echo "Vein Bootstrap - Launching Updater Service"
-    if [[ "$DRY_RUN" = "True" ]]; then
-        echo "DRY_RUN - supervisorctl start vein-updater"
-    else
-        supervisorctl start vein-updater
-    fi
+    supervisorctl start vein-updater
     exit 0
 }
 
