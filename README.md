@@ -17,6 +17,7 @@ Based on the architecture patterns from [ark-sa-server](https://github.com/Johnn
 # Table of Contents
 
 * [Features](#features)
+* [Documentation](#documentation)
 * [Quick Start](#quick-start)
 * [Server/Game Configs](#servergame-configs)
   * [Environment Variables](#environment-variables)
@@ -39,6 +40,10 @@ Based on the architecture patterns from [ark-sa-server](https://github.com/Johnn
 * Automated backups with retention policy
 * Native Linux server (no Wine/Proton overhead)
 * Graceful shutdown with automatic backup
+
+## Documentation
+
+For detailed documentation, guides, and examples, visit the [Wiki](https://github.com/Johnny-Knighten/vein-server/wiki).
 
 ## Quick Start
 
