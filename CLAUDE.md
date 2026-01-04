@@ -238,6 +238,7 @@ vein-server/
 |----------|---------|-------------|
 | `SCHEDULED_RESTART` | False | Enable restarts |
 | `RESTART_CRON` | "0 4 * * *" | Restart schedule |
+| `SERVER_RESTART_DELAY` | 20 | Seconds to wait after stop before starting server (prevents SteamAPI init failures). Set to 0 or lower to disable. |
 | `SCHEDULED_UPDATE` | False | Enable updates |
 | `UPDATE_CRON` | "0 3 * * *" | Update schedule |
 

@@ -73,6 +73,7 @@ ENV SERVER_DIR="/vein-server/server" \
     BACKUP_CRON="0 6 * * *" \
     SCHEDULED_RESTART="False" \
     RESTART_CRON="0 4 * * *" \
+    SERVER_RESTART_DELAY="20" \
     SCHEDULED_UPDATE="False" \
     UPDATE_CRON="0 3 * * *" \
     MANUAL_CONFIG="False" \

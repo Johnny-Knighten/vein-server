@@ -18,7 +18,16 @@ main() {
 start_vein_server() {
   if [[ "$SCRIPT_PARAM" = "restart" ]]; then
     echo "Backup Process - Starting Vein Server After Backup"
+    wait_before_server_start
     supervisorctl start vein-server
+  fi
+}
+
+wait_before_server_start() {
+  local delay="${SERVER_RESTART_DELAY:-20}"
+  if [[ "$delay" -gt 0 ]]; then
+    echo "Backup Process - Waiting ${delay}s Before Starting Server (SERVER_RESTART_DELAY)"
+    sleep "$delay"
   fi
 }
 
