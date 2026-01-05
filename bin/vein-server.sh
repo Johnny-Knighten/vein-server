@@ -10,7 +10,11 @@ trap cleanup SIGTERM SIGINT
 
 cleanup() {
     echo "Vein Server - Shutdown signal received, stopping server"
-    pkill -TERM VeinServer || true
+    # Kill the actual VeinServer binary (child of VeinServer.sh)
+    pkill -TERM -f "VeinServer-Linux-Test" 2>/dev/null || true
+    if [ -n "$SERVER_PID" ]; then
+        wait "$SERVER_PID" 2>/dev/null || true
+    fi
     exit 0
 }
 
@@ -27,8 +31,14 @@ start_server() {
 
     echo "Vein Server - Launching server process"
 
-    # Run server in foreground - output goes directly to stdout/stderr
-    exec ./VeinServer.sh -log
+    # Run server as child process so we can catch signals and forward them
+    ./VeinServer.sh -log &
+    SERVER_PID=$!
+
+    echo "Vein Server - Server started with PID $SERVER_PID"
+
+    # Wait for server to exit
+    wait "$SERVER_PID"
 }
 
 start_server
