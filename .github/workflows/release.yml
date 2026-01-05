@@ -10,7 +10,6 @@ on:
       - 'CHANGELOG.md'
 
 env:
-  ACT: ""
   NEW_VERSION: ""
 
 permissions:
@@ -40,7 +39,6 @@ jobs:
 
       - name: Release
         id: semantic_release
-        if: ${{ !env.ACT }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN_SEMANTIC_RELEASE }}
         run: |
@@ -49,25 +47,13 @@ jobs:
           NEW_VERSION=$(echo "$OUTPUT" | grep "Published release" | cut -d" " -f9)
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Release (DRY RUN)
-        id: semantic_release_dry_run
-        if: ${{ env.ACT }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          DRY_RUN_OUTPUT=$(npx semantic-release --dry-run)
-          echo "$DRY_RUN_OUTPUT"
-          NEW_VERSION=$(echo "$DRY_RUN_OUTPUT" | grep "Published release" | cut -d" " -f9)
-          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-
     outputs:
       new_version: ${{ steps.semantic_release.outputs.new_version }}
-      new_version_dry_run: ${{ steps.semantic_release_dry_run.outputs.new_version }}
 
   dockerhub-release:
     name: Push Image to DockerHub
     needs: github-release
-    if: needs.github-release.outputs.new_version != '' || needs.github-release.outputs.new_version_dry_run != ''
+    if: needs.github-release.outputs.new_version != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -83,7 +69,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create Docker Metadata (Tags)
-        if: ${{ !env.ACT }}
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -93,19 +78,7 @@ jobs:
             ${{ (github.ref == 'refs/heads/main') && 'type=raw,value=latest' || '' }}
             type=semver,pattern={{version}},onlatest=true,value=${{ needs.github-release.outputs.new_version }}
 
-      - name: Create Docker Metadata (Tags) (DRY RUN)
-        if: ${{ env.ACT }}
-        id: meta-dry-run
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            johnnyknighten/vein-server
-          tags: |
-            ${{ (github.ref == 'refs/heads/main') && 'type=raw,value=latest' || '' }}
-            type=semver,pattern={{version}},onlatest=true,value=${{ needs.github-release.outputs.new_version_dry_run }}
-
       - name: Push Image to DockerHub
-        if: ${{ !env.ACT }}
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -113,15 +86,8 @@ jobs:
           tags:  ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
 
-      - name: Push Image to Docker Hub (DRY RUN)
-        if: ${{ env.ACT }}
-        run: |
-          echo "DRY RUN - Skipping Docker Build and Push"
-          echo "The Following Images Would Have Been Pushed:"
-          echo "${{ steps.meta-dry-run.outputs.tags }}"
-
       - name: Update DockerHub Description
-        if: ${{ !env.ACT && github.ref == 'refs/heads/main' }}
+        if: github.ref == 'refs/heads/main'
         uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -129,8 +95,3 @@ jobs:
           repository: johnnyknighten/vein-server
           short-description: ${{ github.event.repository.description }}
           enable-url-completion: true
-
-      - name: Update DockerHub Description (DRY RUN)
-        if: ${{ env.ACT && github.ref == 'refs/heads/main' }}
-        run: |
-          echo "DRY RUN - Pushing Dockerhub Description Update"

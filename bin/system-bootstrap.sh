@@ -24,13 +24,9 @@ cleanup() {
 
 main() {
   setup_cron_jobs
-  if [[ "$DRY_RUN" = "True" ]]; then
-    echo "DRY_RUN - exec /usr/bin/supervisord -c /vein-server/supervisord/supervisord.conf"
-  else
-    trap 'cleanup' SIGTERM
-    /usr/bin/supervisord -c /vein-server/supervisord/supervisord.conf &
-    wait $!
-  fi
+  trap 'cleanup' SIGTERM
+  /usr/bin/supervisord -c /vein-server/supervisord/supervisord.conf &
+  wait $!
 }
 
 setup_cron_jobs() {
@@ -67,8 +63,9 @@ setup_cron_jobs() {
 }
 
 setup_cron_scheduled_restart() {
+  local delay="${SERVER_RESTART_DELAY:-20}"
   echo "$(date) - Server Restart CRON Scheduled For: $RESTART_CRON" >> /vein-server/logs/cron.log
-  echo "$RESTART_CRON supervisorctl restart vein-server && \
+  echo "$RESTART_CRON supervisorctl stop vein-server && sleep $delay && supervisorctl start vein-server && \
     echo \"\$(date) - CRON Restart - vein-server\" >> /vein-server/logs/cron.log"
 }
 

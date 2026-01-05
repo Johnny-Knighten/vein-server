@@ -18,41 +18,34 @@ main() {
 start_vein_server() {
   if [[ "$SCRIPT_PARAM" = "restart" ]]; then
     echo "Backup Process - Starting Vein Server After Backup"
-    if [[ "$DRY_RUN" = "True" ]]; then
-      echo "DRY_RUN - supervisorctl start vein-server"
-    else
-      supervisorctl start vein-server
-    fi
+    wait_before_server_start
+    supervisorctl start vein-server
+  fi
+}
+
+wait_before_server_start() {
+  local delay="${SERVER_RESTART_DELAY:-20}"
+  if [[ "$delay" -gt 0 ]]; then
+    echo "Backup Process - Waiting ${delay}s Before Starting Server (SERVER_RESTART_DELAY)"
+    sleep "$delay"
   fi
 }
 
 start_vein_update() {
   if [[ "$SCRIPT_PARAM" = "update" ]]; then
     echo "Backup Process - Starting Vein Update After Backup"
-    if [[ "$DRY_RUN" = "True" ]]; then
-      echo "DRY_RUN - supervisorctl start vein-updater"
-    else
-      supervisorctl start vein-updater
-    fi
+    supervisorctl start vein-updater
   fi
 }
 
 zip_backup() {
   # Create zip of the contents of Saved (archive root is the contents, not the full absolute path)
-  if [[ "$DRY_RUN" = "True" ]]; then
-    echo "DRY_RUN - (cd \"${SERVER_DIR}/Vein/Saved\" && zip -r \"${BACKUPS_DIR}/vein-server-$(date +%Y%m%d%H%M%S).zip\" .)"
-  else
-    (cd "${SERVER_DIR}/Vein/Saved" && zip -r "${BACKUPS_DIR}/vein-server-$(date +%Y%m%d%H%M%S).zip" .)
-  fi
+  (cd "${SERVER_DIR}/Vein/Saved" && zip -r "${BACKUPS_DIR}/vein-server-$(date +%Y%m%d%H%M%S).zip" .)
 }
 
 tar_gz_backup() {
   # Create tar.gz of the contents of Saved (archive root is the contents, not the full absolute path)
-  if [[ "$DRY_RUN" = "True" ]]; then
-    echo "DRY_RUN - (cd \"${SERVER_DIR}/Vein/Saved\" && tar -czf \"${BACKUPS_DIR}/vein-server-$(date +%Y%m%d%H%M%S).tar.gz\" .)"
-  else
-    (cd "${SERVER_DIR}/Vein/Saved" && tar -czf "${BACKUPS_DIR}/vein-server-$(date +%Y%m%d%H%M%S).tar.gz" .)
-  fi
+  (cd "${SERVER_DIR}/Vein/Saved" && tar -czf "${BACKUPS_DIR}/vein-server-$(date +%Y%m%d%H%M%S).tar.gz" .)
 }
 
 backup_vein_server() {
