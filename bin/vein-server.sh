@@ -31,8 +31,15 @@ start_server() {
 
     echo "Vein Server - Launching server process"
 
+    # Build server arguments
+    SERVER_ARGS="-log"
+    SERVER_ARGS="${SERVER_ARGS} -Port=${VEIN_SERVER_PORT:-7777}"
+    SERVER_ARGS="${SERVER_ARGS} -QueryPort=${VEIN_SERVER_QUERY_PORT:-27015}"
+
+    echo "Vein Server - Args: ${SERVER_ARGS}"
+
     # Run server as child process so we can catch signals and forward them
-    ./VeinServer.sh -log &
+    ./VeinServer.sh ${SERVER_ARGS} &
     SERVER_PID=$!
 
     echo "Vein Server - Server started with PID $SERVER_PID"
