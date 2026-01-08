@@ -95,3 +95,28 @@ jobs:
           repository: johnnyknighten/vein-server
           short-description: ${{ github.event.repository.description }}
           enable-url-completion: true
+
+  sync-main-to-next:
+    name: Sync main to next
+    needs: github-release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN_SEMANTIC_RELEASE }}
+
+      - name: Create sync PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GH_TOKEN_SEMANTIC_RELEASE }}
+          branch: chore/sync-main-to-next
+          base: next
+          title: "chore: sync main to next"
+          body: "Automated PR to sync changes from main back to next."
+          delete-branch: true
