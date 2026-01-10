@@ -228,7 +228,7 @@ vein-server/
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `UPDATE_ON_BOOT` | True | Update on container start |
-| `SKIP_FILE_VALIDATION` | False | Skip SteamCMD file validation (faster updates) |
+| `VALIDATE_SERVER_FILES` | True | Validate server files with SteamCMD during updates (set to False to skip validation for faster updates) |
 | `EXPERIMENTAL_BUILD` | False | Use experimental build (App ID: 2600250) |
 | `MANUAL_CONFIG` | False | Skip config generation |
 
@@ -317,6 +317,7 @@ environment:
 |------|----------|-------------|
 | 7777 | UDP | Game server port (configurable via `VEIN_SERVER_PORT`) |
 | 27015 | UDP | Query port (configurable via `VEIN_SERVER_QUERY_PORT`) |
+| 8080 | TCP | HTTP query server (optional, for querying game data from running instance) |
 
 ### Health Check
 
@@ -433,7 +434,7 @@ docker exec vein-server supervisorctl tail -f vein-updater
 **Skip file validation for faster updates:**
 ```yaml
 environment:
-  SKIP_FILE_VALIDATION: "True"
+  VALIDATE_SERVER_FILES: "False"
 ```
 
 ### Scheduled Tasks Not Running
