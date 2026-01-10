@@ -92,15 +92,16 @@ The table below shows all the available environment variables and their default 
 
 | Variable | Description | Default |
 | --- | --- | :---: |
-| `TZ` | Sets the timezone of the container. See the table [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) and look in the TZ identifier column. Highly recommend to set this if you will be using any of the CRON variables. | `America/New_York` |
+| `TZ` | Sets the timezone of the container. See the table [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) and look in the TZ identifier column. Highly recommend to set this if you will be using any of the CRON variables. | (system default) |
 | `MANUAL_CONFIG` | If set to `True` then the container will not generate any config files. This is useful if you want to manage the config files yourself. | `False` |
 | `SCHEDULED_RESTART` | Enable scheduled restarts of the server. | `False` |
 | `BACKUP_ON_SCHEDULED_RESTART` | Determines if the server should backup itself before restarting. | `False` |
 | `RESTART_CRON` | Cron expression for scheduled restarts. Default is everyday at 4am. | `0 4 * * *` |
 | `SCHEDULED_UPDATE` | Enable scheduled updates of the server. | `False` |
-| `UPDATE_CRON` | Cron expression for scheduled updates. Default is every Sunday at 5am. | `0 5 * * 0` |
+| `UPDATE_CRON` | Cron expression for scheduled updates. Default is daily at 3am. | `0 3 * * *` |
 | `BACKUP_BEFORE_UPDATE` | Determines if the server should backup itself before updating. | `True` |
 | `UPDATE_ON_BOOT` | Determines if the server should update itself when it starts. If this is set to `False` then the server will only update if `SCHEDULED_UPDATE=True`, then it will update on the schedule specified by `UPDATE_CRON`. | `True` |
+| `VALIDATE_SERVER_FILES` | Validate server files with SteamCMD during updates. Set to `False` to skip validation for faster updates. | `True` |
 | `EXPERIMENTAL_BUILD` | If set to `True`, downloads the experimental beta build instead of the stable release. Uses a different Steam App ID and beta branch. | `False` |
 | `SCHEDULED_BACKUP` | Enable scheduled backups of the server. | `False` |
 | `BACKUP_CRON` | Cron expression for scheduled backups. Default is every day at 6am. | `0 6 * * *` |
@@ -126,6 +127,7 @@ The table below shows the default ports that are exposed by the container.
 | :---: | :---: | --- |
 | 7777 | UDP | Main game port |
 | 27015 | UDP | Steam query port |
+| 8080 | TCP | HTTP query server (optional, for querying game data) |
 
 Make sure you have Port Forwarding configured otherwise the server will not be accessible from the internet.
 
