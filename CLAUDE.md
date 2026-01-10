@@ -30,7 +30,7 @@ The project uses VS Code devcontainer with Docker-in-Docker.
 docker build -t vein-server:dev .
 
 # Run container
-docker-compose up
+docker compose up
 
 # View logs
 docker logs -f vein-server
@@ -60,7 +60,7 @@ shellcheck bin/*.sh
 ┌─────────────────────────────────────────────────────────────────┐
 │  system-bootstrap.sh (ENTRYPOINT - PID 1)                       │
 │  - Setup cron jobs from ENV vars                                │
-│  - Trap SIGTERM/SIGINT for graceful shutdown                    │
+│  - Trap SIGTERM for graceful shutdown                           │
 │  - Start supervisord                                            │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -80,29 +80,33 @@ shellcheck bin/*.sh
                               │
               ┌───────────────┴───────────────┐
               │                               │
-    No files OR                      Files exist AND
-    UPDATE_ON_BOOT=True              UPDATE_ON_BOOT=False
-              │                               │
-              ▼                               ▼
-┌──────────────────────┐          ┌──────────────────────┐
-│  vein-updater.sh     │          │  vein-server.sh      │
-│  - Run SteamCMD      │          │  - Run VeinServer.sh │
-│  - App ID: 2131400   │          │  - Exec in foreground│
-└──────────────────────┘          └──────────────────────┘
+        No server files                 Server files exist
               │                               │
               ▼                               │
 ┌──────────────────────┐                      │
-│  vein-server.sh      │◄─────────────────────┘
-│  - Run VeinServer.sh │
-└──────────────────────┘
+│  vein-updater.sh     │                      │
+│  - Run SteamCMD      │                      │
+│  - App ID: 2131400   │                      ▼
+│  - Launch server     │        ┌─────────────────────────┐
+└──────────────────────┘        │  UPDATE_ON_BOOT check   │
+              │                 └─────────────────────────┘
+              │                       │         │
+              │                 True  │         │  False
+              │                       ▼         ▼
+              │             ┌──────────────┐  ┌──────────────┐
+              │             │vein-updater  │  │vein-server   │
+              └────────────►│- Update files│  │- Start server│
+                            │- Start server│  └──────────────┘
+                            └──────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    SERVER RUNNING                                │
 │  Cron triggers (if enabled):                                    │
-│  - SCHEDULED_RESTART → supervisorctl restart vein-server        │
+│  - SCHEDULED_RESTART → stop server → vein-backup-and-restart    │
 │  - SCHEDULED_UPDATE → supervisorctl start vein-updater          │
-│  - SCHEDULED_BACKUP → supervisorctl start vein-backup           │
+│  - SCHEDULED_BACKUP → stop server → vein-backup-and-restart     │
+│    (Note: Scheduled backups also restart the server)            │
 └─────────────────────────────────────────────────────────────────┘
                               │
                          SIGTERM
@@ -174,7 +178,7 @@ vein-server/
 
 ### system-bootstrap.sh
 - PID 1 entrypoint
-- Signal handling (SIGTERM, SIGINT)
+- Signal handling (SIGTERM only)
 - Cron job setup
 - Graceful shutdown with backup
 
@@ -188,8 +192,8 @@ vein-server/
 - Start vein-server on completion
 
 ### vein-server.sh
-- Execute VeinServer.sh
-- Tail logs to stdout
+- Execute VeinServer.sh as background process
+- Wait for server process to complete
 
 ### vein-backup.sh
 - Backup Vein/Saved directory
@@ -210,16 +214,22 @@ vein-server/
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VEIN_SERVER_NAME` | "Vein Server" | Server name |
+| `VEIN_SERVER_DESCRIPTION` | "A Vein dedicated server" | Server description |
 | `VEIN_SERVER_PASSWORD` | "" | Server password |
 | `VEIN_SERVER_PUBLIC` | "True" | Show in browser |
 | `VEIN_SERVER_MAX_PLAYERS` | 16 | Max players |
-| `VEIN_SERVER_PORT` | 7777 | Game port |
-| `VEIN_SERVER_QUERY_PORT` | 27015 | Query port |
+| `VEIN_SERVER_PORT` | 7777 | Game port (UDP) |
+| `VEIN_SERVER_QUERY_PORT` | 27015 | Query port (UDP) |
+| `VEIN_BIND_ADDR` | "0.0.0.0" | Bind address |
+| `VEIN_HEARTBEAT_INTERVAL` | "5.0" | Heartbeat interval |
+| `VEIN_VAC_ENABLED` | "0" | Enable VAC (Valve Anti-Cheat) |
 
 ### Update Settings
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `UPDATE_ON_BOOT` | True | Update on container start |
+| `SKIP_FILE_VALIDATION` | False | Skip SteamCMD file validation (faster updates) |
+| `EXPERIMENTAL_BUILD` | False | Use experimental build (App ID: 2600250) |
 | `MANUAL_CONFIG` | False | Skip config generation |
 
 ### Backup Settings
@@ -242,32 +252,85 @@ vein-server/
 | `SCHEDULED_UPDATE` | False | Enable updates |
 | `UPDATE_CRON` | "0 3 * * *" | Update schedule |
 
+### System Settings
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEBUG` | (not set) | Enable verbose debug output in all shell scripts |
+
 ### Advanced Configuration (CONFIG_FILE_ Variables)
 
-Format: `CONFIG_FILE_<filename>_SECTION_<section>_VAR_<variable>=<value>`
+The CONFIG_FILE_ system allows generating custom INI files from environment variables.
 
-**Delimiters:**
-- `_SECTION_` separates filename from section name
-- `_VAR_` separates section name from variable name
+**Format:** `CONFIG_FILE_<filename>_SECTION_<section>_VAR_<variable>=<value>`
 
-**Special character replacements (for section and variable names):**
-- Use `SLASH` for `/`
-- Use `DOT` for `.`
+**Transformation Process:**
+1. Split on `_SECTION_` to extract filename
+2. Split on `_VAR_` to separate section and variable names
+3. Replace special character placeholders:
+   - `SLASH` (with surrounding underscores) → `/`
+   - `DOT` (with surrounding underscores) → `.`
+4. Convert trailing numbers to array syntax: `Variable7` → `Variable[7]`
 
-**Examples:**
-```yaml
-# Console variable with dots in name (use DOT for .)
-CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP: "True"
-CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_AISpawner_DOT_Enabled: "True"
-CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_TimeMultiplier: "16"
+**Example Transformations:**
+
+```bash
+# Simple variable
+Input:  CONFIG_FILE_Game_SECTION_ServerSettings_VAR_MaxPlayers=32
+Output: Game.ini
+        [ServerSettings]
+        MaxPlayers=32
+
+# Variable with dots (use DOT placeholder)
+Input:  CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP=True
+Output: Engine.ini
+        [ConsoleVariables]
+        vein.PvP=True
 
 # Section with slashes and dots
-CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_AdminSteamIDs: "12345678901234567"
+Input:  CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_AdminSteamIDs=12345678901234567
+Output: Game.ini
+        [/Script/Vein.VeinGameSession]
+        AdminSteamIDs=12345678901234567
 
 # Array-style variable (trailing number becomes [N])
-CONFIG_FILE_Game_SECTION_ServerSettings_VAR_PlayerBaseStatsMultipliers7: "6.0"
-# Results in: PlayerBaseStatsMultipliers[7]=6.0
+Input:  CONFIG_FILE_Game_SECTION_ServerSettings_VAR_PlayerBaseStatsMultipliers7=6.0
+Output: Game.ini
+        [ServerSettings]
+        PlayerBaseStatsMultipliers[7]=6.0
 ```
+
+**Docker Compose Example:**
+```yaml
+environment:
+  CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_PvP: "True"
+  CONFIG_FILE_Engine_SECTION_ConsoleVariables_VAR_vein_DOT_TimeMultiplier: "16"
+  CONFIG_FILE_Game_SECTION_SLASH_Script_SLASH_Vein_DOT_VeinGameSession_VAR_AdminSteamIDs: "12345678901234567"
+```
+
+---
+
+## Container Configuration
+
+### Exposed Ports
+
+| Port | Protocol | Description |
+|------|----------|-------------|
+| 7777 | UDP | Game server port (configurable via `VEIN_SERVER_PORT`) |
+| 27015 | UDP | Query port (configurable via `VEIN_SERVER_QUERY_PORT`) |
+
+### Health Check
+
+The container includes a health check that monitors the supervisord process:
+
+```dockerfile
+HEALTHCHECK --interval=60s --timeout=10s --start-period=300s --retries=3
+```
+
+- **Interval:** Checks every 60 seconds
+- **Timeout:** 10 seconds per check
+- **Start Period:** 5 minutes grace period for initial startup
+- **Retries:** 3 consecutive failures before marking unhealthy
+- **Check:** Verifies supervisord process is running
 
 ---
 
@@ -297,6 +360,113 @@ docker exec vein-server supervisorctl restart vein-server
 ```bash
 shellcheck bin/*.sh
 docker build -t vein-server:dev .
+```
+
+---
+
+## Troubleshooting
+
+### Server Fails to Start
+
+**Check logs:**
+```bash
+docker exec vein-server cat /vein-server/logs/bootstrap.log
+docker logs vein-server
+```
+
+**Verify server files exist:**
+```bash
+docker exec vein-server ls -la /vein-server/server/VeinServer.sh
+```
+
+**Check supervisord status:**
+```bash
+docker exec vein-server supervisorctl status
+```
+
+### SteamAPI Initialization Failures
+
+If you see "SteamAPI initialization failed" errors:
+
+1. Increase the restart delay:
+   ```yaml
+   environment:
+     SERVER_RESTART_DELAY: 30  # Increase from default 20
+   ```
+
+2. Verify SteamCMD completed successfully:
+   ```bash
+   docker exec vein-server cat /vein-server/logs/updater.log
+   ```
+
+### Configuration Changes Not Applied
+
+**Verify MANUAL_CONFIG is not enabled:**
+```bash
+docker exec vein-server env | grep MANUAL_CONFIG
+```
+
+**Check if config files were generated:**
+```bash
+docker exec vein-server ls -la /vein-server/server/Vein/Saved/Config/LinuxServer/
+```
+
+**Regenerate config files:**
+```bash
+# Set MANUAL_CONFIG=False and restart container
+docker restart vein-server
+```
+
+### Updates Not Working
+
+**Check updater logs:**
+```bash
+docker exec vein-server cat /vein-server/logs/updater.log
+```
+
+**Manually trigger update:**
+```bash
+docker exec vein-server supervisorctl start vein-updater
+docker exec vein-server supervisorctl tail -f vein-updater
+```
+
+**Skip file validation for faster updates:**
+```yaml
+environment:
+  SKIP_FILE_VALIDATION: "True"
+```
+
+### Scheduled Tasks Not Running
+
+**Verify cron jobs are configured:**
+```bash
+docker exec vein-server crontab -l
+```
+
+**Check cron logs:**
+```bash
+docker exec vein-server grep CRON /var/log/syslog
+```
+
+**Enable scheduled operations:**
+```yaml
+environment:
+  SCHEDULED_RESTART: "True"
+  RESTART_CRON: "0 4 * * *"
+```
+
+### Enable Debug Mode
+
+For verbose output in all scripts:
+```yaml
+environment:
+  DEBUG: "true"
+```
+
+Then restart and check logs:
+```bash
+docker restart vein-server
+docker logs -f vein-server
 ```
 
 ---
