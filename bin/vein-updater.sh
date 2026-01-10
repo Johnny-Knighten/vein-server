@@ -18,25 +18,25 @@ launch_vein_server() {
 
 download_and_update_vein_server() {
     local app_id="2131400"
-    local beta_flag=""
-    local validate_flag="validate"
+    local steamcmd_args=("+force_install_dir" "$SERVER_DIR" "+login" "anonymous")
 
-    if [ "$EXPERIMENTAL_BUILD" = "True" ]; then
+    if [[ "$EXPERIMENTAL_BUILD" = "True" ]]; then
         echo "Updater - Using Experimental Build"
         app_id="2600250"
-        beta_flag="-beta experimental"
+        steamcmd_args+=("+app_update" "$app_id" "-beta" "experimental")
+    else
+        steamcmd_args+=("+app_update" "$app_id")
     fi
 
-    if [ "$SKIP_FILE_VALIDATION" = "True" ]; then
+    if [[ "$VALIDATE_SERVER_FILES" != "False" ]]; then
+        steamcmd_args+=("validate")
+    else
         echo "Updater - Skipping SteamCMD Validation of Server Files"
-        validate_flag=""
     fi
 
-    local app_update="+app_update $app_id $beta_flag $validate_flag"
+    steamcmd_args+=("+quit")
 
-    local install_dir="+force_install_dir $SERVER_DIR"
-
-    steamcmd "$install_dir" +login anonymous "$app_update" +quit
+    steamcmd "${steamcmd_args[@]}"
 }
 
 main
