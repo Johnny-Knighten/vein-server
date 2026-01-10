@@ -1,8 +1,7 @@
-version: '3'
 services:
   vein:
     container_name: vein
-    image: vein-server:latest
+    image: johnnyknighten/vein-server:latest
     restart: unless-stopped
     environment:
       # Server identity

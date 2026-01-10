@@ -28,7 +28,15 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githu
 sudo apt-get update
 sudo apt-get install -y gh
 
-# 6. Verify installations
+# 6. Install Claude Code CLI
+# Install Node.js (required for Claude Code)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install Claude Code CLI globally
+sudo npm install -g @anthropic-ai/claude-code
+
+# 7. Verify installations
 echo "Verifying installations..."
 docker --version
 docker compose version
@@ -36,5 +44,8 @@ shellcheck --version
 shfmt -version || echo "shfmt not available (non-critical)"
 gh --version
 git --version
+node --version
+npm --version
+claude --version
 
 echo "✓ Development tools installed successfully!"
