@@ -103,6 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -115,9 +116,42 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge main into next
+      - name: Sync main to next via PR
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_SEMANTIC_RELEASE }}
         run: |
-          git fetch origin next
-          git checkout next
-          git merge origin/main -m "chore: sync main back to next [skip ci]"
-          git push origin next
+          set -eo pipefail
+
+          # Fetch latest branches
+          git fetch origin next main
+
+          # Create temporary branch from main (already at main after checkout)
+          BRANCH_NAME="sync-main-to-next-${{ github.run_number }}"
+          git checkout -b "$BRANCH_NAME"
+
+          # Push temporary branch (contains main's commits)
+          git push origin "$BRANCH_NAME"
+
+          # Create PR and capture PR number
+          # Note: Using --admin flag to bypass branch protection rules for automated sync
+          PR_URL=$(gh pr create \
+            --base next \
+            --head "$BRANCH_NAME" \
+            --title "chore: sync main back to next [skip ci]" \
+            --body "Automated sync of main branch back to next after release ${{ needs.github-release.outputs.new_version }}." \
+            --repo ${{ github.repository }})
+
+          echo "Created PR: $PR_URL"
+
+          # Extract PR number from URL
+          PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]*$')
+
+          # Merge PR with admin privileges to bypass branch protection
+          # gh pr merge handles waiting for PR to be ready
+          gh pr merge "$PR_NUMBER" \
+            --merge \
+            --admin \
+            --delete-branch \
+            --repo ${{ github.repository }}
+
+          echo "Successfully synced main to next via PR #$PR_NUMBER"
