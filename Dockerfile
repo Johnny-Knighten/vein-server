@@ -29,7 +29,9 @@ RUN if ! id -u steam > /dev/null 2>&1; then \
         groupadd -g 1000 steam && \
         useradd -u 1000 -g 1000 -m -s /bin/bash steam; \
     fi && \
-    usermod -a -G crontab steam
+    usermod -a -G crontab steam && \
+    mkdir -p /home/steam/.steam && \
+    chown steam:steam /home/steam/.steam
 
 RUN mkdir -p \
     /vein-server/server \
