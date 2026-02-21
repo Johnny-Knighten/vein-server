@@ -96,28 +96,3 @@ jobs:
           short-description: ${{ github.event.repository.description }}
           enable-url-completion: true
 
-  sync-main-to-next:
-    name: Sync main to next
-    needs: github-release
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN_SEMANTIC_RELEASE }}
-
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Merge main into next
-        run: |
-          git fetch origin next
-          git checkout next
-          git merge origin/main -m "chore: sync main back to next [skip ci]"
-          git push origin next
